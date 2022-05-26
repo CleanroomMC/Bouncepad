@@ -4,6 +4,7 @@ import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
 import net.minecraft.launchwrapper.ITweaker;
+import net.minecraft.launchwrapper.Launch;
 import net.minecraft.launchwrapper.LaunchClassLoader;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -28,7 +29,9 @@ public class Bouncepad {
     public static File assetsDir;
 
     public static void main(String[] args) {
+        Launch.blackboard = BLACKBOARD;
         classLoader = new BouncepadClassLoader(getClassPathURLs());
+        Launch.classLoader = classLoader;
         Thread.currentThread().setContextClassLoader(classLoader);
         launch(args);
     }
