@@ -101,7 +101,7 @@ public class Bouncepad {
                     Constructor<?> tweakerCtor = Class.forName(tweakerName, true, classLoader).getDeclaredConstructor();
                     final ITweaker tweaker = (ITweaker) tweakerCtor.newInstance();
                     tweakers.add(tweaker);
-                    if (firstTweaker == null && tweaker.getLaunchTarget() != null && !tweaker.getLaunchTarget().isEmpty()) {
+                    if (firstTweaker == null) {
                         LOGGER.info("Using primary tweak class name {}", tweakerName);
                         firstTweaker = tweaker;
                     }
