@@ -1,6 +1,7 @@
 plugins {
     id 'java'
     id 'idea'
+    id 'maven-publish'
 }
 
 group 'com.cleanroommc'
@@ -41,4 +42,22 @@ dependencies {
     implementation 'org.lwjgl:lwjgl-tinyfd:3.3.1'
      */
 
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+        }
+    }
+    // select the repositories you want to publish to
+    repositories {
+        maven {
+            url cleanroom_maven
+            credentials {
+                username cleanroom_user
+                password cleanroom_pass
+            }
+        }
+    }
 }
