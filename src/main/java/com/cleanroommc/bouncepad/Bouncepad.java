@@ -11,8 +11,8 @@ import org.apache.logging.log4j.Logger;
 
 import java.io.File;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.*;
 
@@ -35,19 +35,17 @@ public class Bouncepad {
         launch(args);
     }
 
-    private static URL[] getClassPathURLs() {
-        Class<?> classWithUcpField = BOOTSTRAP_CLASSLOADER.getClass().getSuperclass();
+    private static List<URL> getClassPathURLs() {
+        String[] classpaths = System.getProperty("java.class.path").split(File.pathSeparator);
+        List<URL> urls = new ArrayList<>();
         try {
-            Field urlClassPathField = classWithUcpField.getDeclaredField("ucp");
-            urlClassPathField.setAccessible(true);
-            Object urlClassPath = urlClassPathField.get(BOOTSTRAP_CLASSLOADER);
-            Method getURLsMethod = urlClassPath.getClass().getDeclaredMethod("getURLs");
-            getURLsMethod.setAccessible(true);
-            return (URL[]) getURLsMethod.invoke(urlClassPath);
-        } catch (ReflectiveOperationException e) {
-            e.printStackTrace();
+            for (String classpath : classpaths) {
+                urls.add(new File(classpath).toURI().toURL());
+            }
+        } catch (MalformedURLException e) {
+            throw new RuntimeException(e);
         }
-        return new URL[0];
+        return urls;
     }
 
     private static void launch(String[] args) {

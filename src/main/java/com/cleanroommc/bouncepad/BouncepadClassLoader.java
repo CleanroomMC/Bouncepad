@@ -2,24 +2,13 @@ package com.cleanroommc.bouncepad;
 
 import net.minecraft.launchwrapper.LaunchClassLoader;
 
-import java.io.IOException;
 import java.net.URL;
-import java.util.Set;
+import java.util.List;
 
 public class BouncepadClassLoader extends LaunchClassLoader {
 
-    public BouncepadClassLoader(URL[] urls) {
-        super(urls);
-    }
-
-    @Override
-    public byte[] getClassBytes(String name) throws IOException {
-        return new byte[0];
-    }
-
-    @Override
-    public void clearNegativeEntries(Set<String> entriesToClear) {
-
+    public BouncepadClassLoader(List<URL> urls) {
+        super(urls.toArray(new URL[0]));
     }
 
 }
