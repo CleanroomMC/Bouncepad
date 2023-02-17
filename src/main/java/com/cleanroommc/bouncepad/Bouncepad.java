@@ -14,12 +14,11 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.URL;
-import java.net.URLClassLoader;
 import java.util.*;
 
 public class Bouncepad {
 
-    public static final ClassLoader PARENT_CLASSLOADER = Bouncepad.class.getClassLoader();
+    public static final ClassLoader BOOTSTRAP_CLASSLOADER = Bouncepad.class.getClassLoader();
     public static final Logger LOGGER = LogManager.getLogger("Bouncepad");
     public static final Map<String, Object> BLACKBOARD = new HashMap<>();
 
@@ -37,15 +36,11 @@ public class Bouncepad {
     }
 
     private static URL[] getClassPathURLs() {
-        if (PARENT_CLASSLOADER instanceof URLClassLoader) {
-            return ((URLClassLoader) PARENT_CLASSLOADER).getURLs();
-        }
-        int javaVersion = Integer.parseInt(System.getProperty("java.specification.version"));
-        Class<?> classWithUcpField = javaVersion >= 16 ? PARENT_CLASSLOADER.getClass().getSuperclass() : PARENT_CLASSLOADER.getClass();
+        Class<?> classWithUcpField = BOOTSTRAP_CLASSLOADER.getClass().getSuperclass();
         try {
             Field urlClassPathField = classWithUcpField.getDeclaredField("ucp");
             urlClassPathField.setAccessible(true);
-            Object urlClassPath = urlClassPathField.get(PARENT_CLASSLOADER);
+            Object urlClassPath = urlClassPathField.get(BOOTSTRAP_CLASSLOADER);
             Method getURLsMethod = urlClassPath.getClass().getDeclaredMethod("getURLs");
             getURLsMethod.setAccessible(true);
             return (URL[]) getURLsMethod.invoke(urlClassPath);

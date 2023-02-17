@@ -10,27 +10,25 @@ version '1.0'
 repositories {
     mavenCentral()
     maven {
-        name 'minecraft'
+        name 'Minecraft'
         url 'https://libraries.minecraft.net/'
     }
 }
 
 dependencies {
 
-    implementation 'net.minecraft:launchwrapper:1.12' // TODO: get rid
-
     implementation 'org.apache.logging.log4j:log4j-api:2.17.2'
     implementation 'org.apache.logging.log4j:log4j-core:2.17.2'
 
-    implementation 'org.ow2.asm:asm:9.3'
-    implementation 'org.ow2.asm:asm-commons:9.3'
-    implementation 'org.ow2.asm:asm-tree:9.3'
+    implementation 'org.ow2.asm:asm:9.4'
+    implementation 'org.ow2.asm:asm-commons:9.4'
+    implementation 'org.ow2.asm:asm-tree:9.4'
 
     // implementation 'it.unimi.dsi:fastutil:8.5.8'
 
     implementation 'net.sf.jopt-simple:jopt-simple:5.0.4'
 
-    implementation 'org.lwjgl.lwjgl:lwjgl:2.9.1'
+    // implementation 'org.lwjgl.lwjgl:lwjgl:2.9.1'
 
     /*
     implementation 'org.lwjgl:lwjgl:3.3.1'
