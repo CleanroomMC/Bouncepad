@@ -4,7 +4,7 @@ plugins {
 }
 
 group 'com.cleanroommc'
-version '0.2'
+version '0.3'
 
 repositories {
     mavenCentral()
@@ -21,7 +21,7 @@ configurations {
 
 dependencies {
 
-    embed files('libs/ImagineBreaker-1.0.jar')
+    embed files('libs/ImagineBreaker-1.2.jar')
 
     implementation 'org.apache.logging.log4j:log4j-api:2.17.2'
     implementation 'org.apache.logging.log4j:log4j-core:2.17.2'
