@@ -36,8 +36,10 @@ dependencies {
 
 }
 
-jar {
-    from configurations.embed.collect { it.isDirectory() ? it : zipTree(it) }
+processResources {
+    from (configurations.embed.collect { it.isDirectory() ? it : zipTree(it) }) {
+        exclude 'META-INF/**'
+    }
 }
 
 publishing {
