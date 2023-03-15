@@ -1,5 +1,6 @@
 package com.cleanroommc.bouncepad;
 
+import com.cleanroommc.bouncepad.api.Blackboard;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
@@ -24,7 +25,8 @@ public class Bouncepad {
 
     public static final ClassLoader BOOTSTRAP_CLASSLOADER = Bouncepad.class.getClassLoader();
     public static final Logger LOGGER = LogManager.getLogger("Bouncepad");
-    public static final Map<String, Object> BLACKBOARD = new HashMap<>();
+
+    private static final InternalBlackboard BLACKBOARD = InternalBlackboard.INSTANCE;
 
     public static LaunchClassLoader classLoader;
 
@@ -32,7 +34,7 @@ public class Bouncepad {
     public static File assetsDir;
 
     public static void main(String[] args) {
-        Launch.blackboard = BLACKBOARD;
+        Launch.blackboard = InternalBlackboard.INSTANCE.map;
         classLoader = new BouncepadClassLoader(getClassPathURLs());
         Launch.classLoader = classLoader;
         Thread.currentThread().setContextClassLoader(classLoader);
@@ -101,10 +103,10 @@ public class Bouncepad {
         minecraftHome = options.valueOf(gameDirOption);
         assetsDir = options.valueOf(assetsDirOption);
         List<String> tweakClassNames = new ArrayList<>(options.valuesOf(tweakClassOption));
-        BLACKBOARD.put("TweakClasses", tweakClassNames);
+        BLACKBOARD.map.put("TweakClasses", tweakClassNames);
 
         List<String> argumentList = new ArrayList<>();
-        BLACKBOARD.put("ArgumentList", argumentList);
+        BLACKBOARD.map.put("ArgumentList", argumentList);
 
         Set<String> dupeChecker = new HashSet<>();
 
@@ -112,7 +114,7 @@ public class Bouncepad {
 
         try {
             final List<ITweaker> tweakers = new ArrayList<>(tweakClassNames.size() + 1);
-            BLACKBOARD.put("Tweaks", tweakers);
+            BLACKBOARD.map.put("Tweaks", tweakers);
 
             ITweaker firstTweaker = null;
 
