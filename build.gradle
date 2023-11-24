@@ -12,7 +12,6 @@ java {
     }
 }
 
-
 repositories {
     mavenCentral()
     maven {
@@ -54,6 +53,16 @@ processResources {
 
 test {
     useJUnitPlatform()
+}
+
+for (int i in 8 .. 21) {
+    tasks.register("testJava${i}", Test) {
+        group 'verification'
+        useJUnitPlatform()
+        it.javaLauncher.set(javaToolchains.launcherFor {
+            languageVersion = JavaLanguageVersion.of(i)
+        })
+    }
 }
 
 publishing {
