@@ -51,10 +51,11 @@ publishing {
     // select the repositories you want to publish to
     repositories {
         maven {
-            url cleanroom_maven
-            credentials {
-                username cleanroom_user
-                password cleanroom_pass
+            name = 'CleanroomMaven'
+            url = CleanroomMaven
+            credentials(PasswordCredentials)
+            authentication {
+                basic(BasicAuthentication)
             }
         }
     }
