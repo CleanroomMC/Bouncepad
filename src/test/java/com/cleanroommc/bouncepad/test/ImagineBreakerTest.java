@@ -51,6 +51,7 @@ public class ImagineBreakerTest {
         runImagineBreaker();
         NativeImagineBreaker.openBaseModules();
         Assertions.assertDoesNotThrow(() -> File.class.getDeclaredField("status").setAccessible(true));
+        Assertions.assertAll(NativeImagineBreaker::removeAllReflectionFilters);
     }
 
 }

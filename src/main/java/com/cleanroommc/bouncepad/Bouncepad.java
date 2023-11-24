@@ -37,7 +37,7 @@ public class Bouncepad {
         classLoader = new BouncepadClassLoader(getClassPathURLs());
         Launch.classLoader = classLoader;
         Thread.currentThread().setContextClassLoader(classLoader);
-        runImagineBreaker();
+        runImagineBreaker(); // TODO: not to run unless its Java 9 or above
         launch(args);
     }
 

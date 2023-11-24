@@ -6,12 +6,6 @@ plugins {
 group 'com.cleanroommc'
 version '0.4'
 
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(17)
-    }
-}
-
 repositories {
     mavenCentral()
     maven {
@@ -23,6 +17,13 @@ repositories {
 configurations {
     embed
     implementation.extendsFrom(embed)
+}
+
+tasks {
+    compileTestJava {
+        sourceCompatibility = JavaVersion.VERSION_1_9
+        targetCompatibility = JavaVersion.VERSION_1_9
+    }
 }
 
 dependencies {
@@ -55,13 +56,13 @@ test {
     useJUnitPlatform()
 }
 
-for (int i in 8 .. 21) {
-    tasks.register("testJava${i}", Test) {
+for (int i in 9 .. 21) {
+    task("testJava${i}", type: Test) {
         group 'verification'
-        useJUnitPlatform()
-        it.javaLauncher.set(javaToolchains.launcherFor {
+        javaLauncher = javaToolchains.launcherFor {
             languageVersion = JavaLanguageVersion.of(i)
-        })
+        }
+        useJUnitPlatform()
     }
 }
 
