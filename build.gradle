@@ -6,6 +6,13 @@ plugins {
 group 'com.cleanroommc'
 version '0.4'
 
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(17)
+    }
+}
+
+
 repositories {
     mavenCentral()
     maven {
@@ -34,12 +41,19 @@ dependencies {
 
     implementation 'net.sf.jopt-simple:jopt-simple:5.0.4'
 
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
+
 }
 
 processResources {
     from (configurations.embed.collect { it.isDirectory() ? it : zipTree(it) }) {
         exclude 'META-INF/**'
     }
+}
+
+test {
+    useJUnitPlatform()
 }
 
 publishing {
