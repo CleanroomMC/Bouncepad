@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-public class InternalBlackboard implements Blackboard {
+class InternalBlackboard implements Blackboard {
 
     static final InternalBlackboard INSTANCE = new InternalBlackboard();
 

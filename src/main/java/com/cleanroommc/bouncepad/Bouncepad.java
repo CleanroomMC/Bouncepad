@@ -1,6 +1,5 @@
 package com.cleanroommc.bouncepad;
 
-import com.cleanroommc.bouncepad.api.Blackboard;
 import joptsimple.OptionParser;
 import joptsimple.OptionSet;
 import joptsimple.OptionSpec;
