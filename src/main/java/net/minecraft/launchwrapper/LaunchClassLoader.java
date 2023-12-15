@@ -52,7 +52,8 @@ public abstract class LaunchClassLoader extends URLClassLoader {
 
         // classloader exclusions
         addClassLoaderExclusion("java.");
-        addClassLoaderExclusion("javax.");
+        addClassLoaderExclusion("javax."); // Scripting Module
+        addClassLoaderExclusion("jdk.dynalink."); // Nashorn
         addClassLoaderExclusion("sun.");
         addClassLoaderExclusion("org.lwjgl.");
         addClassLoaderExclusion("org.apache.logging.");
