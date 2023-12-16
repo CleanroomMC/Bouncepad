@@ -18,6 +18,7 @@ import java.util.jar.Manifest;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 
+@Deprecated(since = "0.5")
 public abstract class LaunchClassLoader extends URLClassLoader {
 
     public static final int BUFFER_SIZE = 1 << 12;

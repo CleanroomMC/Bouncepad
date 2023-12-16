@@ -1,10 +1,11 @@
 package net.minecraft.launchwrapper;
 
+import com.cleanroommc.bouncepad.Bouncepad;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-// TODO
+@Deprecated(since = "0.5")
 public class LogWrapper {
 
     public static LogWrapper log = new LogWrapper();
@@ -13,7 +14,7 @@ public class LogWrapper {
     private Logger myLog;
 
     private static void configureLogging() {
-        log.myLog = LogManager.getLogger("LaunchWrapper");
+        log.myLog = Bouncepad.LOGGER;
         configured = true;
     }
 
@@ -22,11 +23,11 @@ public class LogWrapper {
     }
 
     public static void log(String logChannel, Level level, String format, Object... data) {
-        makeLog(logChannel);
+        Logger logger = makeAndGetLog(logChannel);
         if (format.contains("{}")) {
-            LogManager.getLogger(logChannel).log(level, format, data);
+            logger.log(level, format, data);
         } else {
-            LogManager.getLogger(logChannel).log(level, String.format(format, data));
+            logger.log(level, String.format(format, data));
         }
     }
 
@@ -87,6 +88,10 @@ public class LogWrapper {
 
     public static void makeLog(String logChannel) {
         LogManager.getLogger(logChannel);
+    }
+
+    private static Logger makeAndGetLog(String logChannel) {
+        return LogManager.getLogger(logChannel);
     }
 
 }

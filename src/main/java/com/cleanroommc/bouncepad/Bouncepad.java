@@ -22,7 +22,6 @@ import java.util.*;
 
 public class Bouncepad {
 
-    public static final ClassLoader BOOTSTRAP_CLASSLOADER = Bouncepad.class.getClassLoader();
     public static final Logger LOGGER = LogManager.getLogger("Bouncepad");
 
     private static final InternalBlackboard BLACKBOARD = InternalBlackboard.INSTANCE;
