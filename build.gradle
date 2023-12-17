@@ -21,23 +21,22 @@ configurations {
 
 tasks {
     compileTestJava {
-        sourceCompatibility = JavaVersion.VERSION_1_9
-        targetCompatibility = JavaVersion.VERSION_1_9
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 }
 
 dependencies {
 
     embed files('libs/ImagineBreaker-1.3.jar')
+    embed 'org.glavo:classfile:0.4.0'
 
     implementation 'org.apache.logging.log4j:log4j-api:2.22.0'
     implementation 'org.apache.logging.log4j:log4j-core:2.22.0'
 
-    implementation 'org.ow2.asm:asm:9.5'
-    implementation 'org.ow2.asm:asm-commons:9.5'
-    implementation 'org.ow2.asm:asm-tree:9.5'
-
-    implementation 'org.glavo:classfile:0.4.0'
+    implementation 'org.ow2.asm:asm:9.6'
+    implementation 'org.ow2.asm:asm-commons:9.6'
+    implementation 'org.ow2.asm:asm-tree:9.6'
 
     implementation 'net.sf.jopt-simple:jopt-simple:5.0.4'
 
