@@ -30,14 +30,14 @@ dependencies {
 
     embed files('libs/ImagineBreaker-1.3.jar')
 
-    implementation 'org.apache.logging.log4j:log4j-api:2.17.2'
-    implementation 'org.apache.logging.log4j:log4j-core:2.17.2'
+    implementation 'org.apache.logging.log4j:log4j-api:2.22.0'
+    implementation 'org.apache.logging.log4j:log4j-core:2.22.0'
 
-    implementation 'org.ow2.asm:asm:9.4'
-    implementation 'org.ow2.asm:asm-commons:9.4'
-    implementation 'org.ow2.asm:asm-tree:9.4'
+    implementation 'org.ow2.asm:asm:9.5'
+    implementation 'org.ow2.asm:asm-commons:9.5'
+    implementation 'org.ow2.asm:asm-tree:9.5'
 
-    // implementation 'it.unimi.dsi:fastutil:8.5.8'
+    implementation 'org.glavo:classfile:0.4.0'
 
     implementation 'net.sf.jopt-simple:jopt-simple:5.0.4'
 
@@ -57,11 +57,11 @@ test {
 }
 
 for (int i in 9 .. 21) {
-    task("testJava${i}", type: Test) {
+    tasks.register("testJava${i}", Test) {
         group 'verification'
-        javaLauncher = javaToolchains.launcherFor {
+        it.getJavaLauncher().set(javaToolchains.launcherFor {
             languageVersion = JavaLanguageVersion.of(i)
-        }
+        })
         useJUnitPlatform()
     }
 }
