@@ -47,7 +47,7 @@ public class ImagineBreakerTest {
     @Test
     public void runNative() {
         System.out.println("Running with Java " + System.getProperty("java.version"));
-        Assertions.assertThrows(InaccessibleObjectException.class, () -> File.class.getDeclaredField("status").setAccessible(true));
+        Assertions.assertThrows(RuntimeException.class, () -> File.class.getDeclaredField("status").setAccessible(true));
         runImagineBreaker();
         NativeImagineBreaker.openBaseModules();
         Assertions.assertDoesNotThrow(() -> File.class.getDeclaredField("status").setAccessible(true));

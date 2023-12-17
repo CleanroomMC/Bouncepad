@@ -33,10 +33,13 @@ public class Bouncepad {
 
     public static void main(String[] args) {
         Launch.blackboard = InternalBlackboard.INSTANCE.map;
+
         classLoader = new BouncepadClassLoader(getClassPathURLs());
         Launch.classLoader = classLoader;
         Thread.currentThread().setContextClassLoader(classLoader);
+
         runImagineBreaker(); // TODO: not to run unless its Java 9 or above
+
         launch(args);
     }
 
