@@ -45,11 +45,11 @@ public class LogWrapper {
     }
 
     public static void log(String logChannel, Level level, Throwable ex, String format, Object... data) {
-        makeLog(logChannel);
+        Logger logger = makeAndGetLog(logChannel);
         if (format.contains("{}")) {
-            LogManager.getLogger(logChannel).log(level, format, data, ex);
+            logger.log(level, format, data, ex);
         } else {
-            LogManager.getLogger(logChannel).log(level, String.format(format, data), ex);
+            logger.log(level, String.format(format, data), ex);
         }
     }
 
