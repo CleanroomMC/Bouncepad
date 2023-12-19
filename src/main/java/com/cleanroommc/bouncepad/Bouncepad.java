@@ -1,32 +1,30 @@
 package com.cleanroommc.bouncepad;
 
+import com.cleanroommc.bouncepad.api.Launcher;
+import com.cleanroommc.bouncepad.api.Tweaker;
 import joptsimple.OptionParser;
-import joptsimple.OptionSet;
-import joptsimple.OptionSpec;
 import net.minecraft.launchwrapper.ITweaker;
 import net.minecraft.launchwrapper.Launch;
-import net.minecraft.launchwrapper.LaunchClassLoader;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import zone.rong.imaginebreaker.NativeImagineBreaker;
 
 import java.io.File;
 import java.io.InputStream;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Method;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 
+// TODO: service-fy tweakers, loaders and transformers
 public class Bouncepad {
 
     public static final Logger LOGGER = LogManager.getLogger("Bouncepad");
 
     private static final InternalBlackboard BLACKBOARD = InternalBlackboard.INSTANCE;
 
-    public static LaunchClassLoader classLoader;
+    public static BouncepadClassLoader classLoader;
 
     public static File minecraftHome;
     public static File assetsDir;
@@ -92,84 +90,99 @@ public class Bouncepad {
         var parser = new OptionParser();
         parser.allowsUnrecognizedOptions();
 
-        var profileOption = parser.accepts("version", "The version we launched with").withRequiredArg();
+        // var profileOption = parser.accepts("version", "The version we launched with").withRequiredArg();
         var gameDirOption = parser.accepts("gameDir", "Alternative game directory").withRequiredArg().ofType(File.class);
         var assetsDirOption = parser.accepts("assetsDir", "Assets directory").withRequiredArg().ofType(File.class);
-        var tweakClassOption = parser.accepts("tweakClass", "Tweak class(es) to load").withRequiredArg();
+        var tweakClassOption = parser.accepts("tweakClass", "Tweak class(es) to load").withOptionalArg();
+        var tweakerOption = parser.accepts("tweakers", "Tweakers to load").withOptionalArg();
+        var launcherOption = parser.accepts("launcher", "Launcher to load").withOptionalArg();
         var nonOption = parser.nonOptions();
 
-        OptionSet options = parser.parse(args);
+        var options = parser.parse(args);
 
-        String profileName = options.valueOf(profileOption);
+        // var profileName = options.valueOf(profileOption);
         minecraftHome = options.valueOf(gameDirOption);
         assetsDir = options.valueOf(assetsDirOption);
 
-        var tweakClassNames = new ArrayList<>(options.valuesOf(tweakClassOption));
-        BLACKBOARD.internalPut("TweakClasses", tweakClassNames);
+        var oldTeakClassNames = new ArrayList<>(options.valuesOf(tweakClassOption));
+        BLACKBOARD.internalPut("TweakClasses", oldTeakClassNames);
+        BLACKBOARD.put("bouncepad:oldtweakers", oldTeakClassNames);
+        var newTweakClassNames = new ArrayList<>(options.valuesOf(tweakerOption));
+        BLACKBOARD.put("bouncepad:tweakers", newTweakClassNames);
 
-        List<String> argumentList = new ArrayList<>();
+        var argumentList = new ArrayList<>(options.valuesOf(nonOption));
         BLACKBOARD.internalPut("ArgumentList", argumentList);
+        BLACKBOARD.put("bouncepad:arguments", argumentList);
 
-        Set<String> dupeChecker = new HashSet<>();
+        Launcher mainLauncher = null;
 
-        List<ITweaker> allTweakers = new ArrayList<>();
+        Set<String> calledTweakers = new HashSet<>();
+        List<ITweaker> allOldTweakers = new ArrayList<>(oldTeakClassNames.size() + 1);
+        List<Tweaker> allNewTweakers = new ArrayList<>(newTweakClassNames.size() + 1);
 
         try {
-            final List<ITweaker> tweakers = new ArrayList<>(tweakClassNames.size() + 1);
-            BLACKBOARD.map.put("Tweaks", tweakers);
-
-            ITweaker firstTweaker = null;
-
-            do {
-                Iterator<String> tweakerNamesIterator = tweakClassNames.iterator();
-                while (tweakerNamesIterator.hasNext()) {
-                    String tweakerName = tweakerNamesIterator.next();
-                    tweakerNamesIterator.remove();
-                    if (!dupeChecker.add(tweakerName)) {
-                        LOGGER.warn("Tweak class name {} has already been visited -- skipping", tweakerName);
-                        continue;
-                    }
-                    LOGGER.info("Loading tweak class name {}", tweakerName);
-                    classLoader.addClassLoaderExclusion(tweakerName.substring(0, tweakerName.lastIndexOf('.')));
-                    Constructor<?> tweakerCtor = Class.forName(tweakerName, true, classLoader).getDeclaredConstructor();
-                    final ITweaker tweaker = (ITweaker) tweakerCtor.newInstance();
-                    tweakers.add(tweaker);
-                    if (firstTweaker == null) {
-                        LOGGER.info("Using primary tweak class name {}", tweakerName);
-                        firstTweaker = tweaker;
-                    }
-                }
-                Iterator<ITweaker> tweakersIterator = tweakers.iterator();
-                while (tweakersIterator.hasNext()) {
-                    ITweaker tweaker = tweakersIterator.next();
-                    LOGGER.info("Calling tweak class {}", tweaker.getClass().getName());
-                    tweaker.acceptOptions(options.valuesOf(nonOption), minecraftHome, assetsDir, profileName);
-                    tweaker.injectIntoClassLoader(classLoader);
-                    allTweakers.add(tweaker);
-                    tweakersIterator.remove();
-                }
-            } while (!tweakClassNames.isEmpty());
-
-            for (ITweaker tweaker : allTweakers) {
-                argumentList.addAll(Arrays.asList(tweaker.getLaunchArguments()));
+            var launcherName = options.valueOf(launcherOption);
+            if (options.valueOf(launcherOption) != null) {
+                BLACKBOARD.put("bouncepad:launcher", launcherName);
+                var ctor = Class.forName(launcherName, true, classLoader).getDeclaredConstructor();
+                mainLauncher = (Launcher) ctor.newInstance();
             }
 
-            if (firstTweaker == null) {
-                LOGGER.fatal("Unable to launch, there are no valid launch targets found within provided tweakers.");
+            var tweakerNamesIterator = newTweakClassNames.iterator();
+            // Processing tweakers
+            while (tweakerNamesIterator.hasNext()) {
+                var tweakerName = tweakerNamesIterator.next();
+                tweakerNamesIterator.remove();
+                if (!calledTweakers.add(tweakerName)) {
+                    LOGGER.warn("{} tweaker has already been visited, skipping!", tweakerName);
+                    continue;
+                }
+                LOGGER.info("Loading {} tweaker", tweakerName);
+                var ctor = Class.forName(tweakerName, true, classLoader).getDeclaredConstructor();
+                var tweaker = (Tweaker) ctor.newInstance();
+                allNewTweakers.add(tweaker);
+                if (mainLauncher == null && tweaker instanceof Launcher launcher) {
+                    mainLauncher = launcher;
+                }
+            }
+            tweakerNamesIterator = oldTeakClassNames.iterator();
+            // Processing old tweakers
+            while (tweakerNamesIterator.hasNext()) {
+                var tweakerName = tweakerNamesIterator.next();
+                tweakerNamesIterator.remove();
+                if (!calledTweakers.add(tweakerName)) {
+                    LOGGER.warn("{} tweaker has already been visited, skipping!", tweakerName);
+                    continue;
+                }
+                LOGGER.info("Loading {} tweaker", tweakerName);
+                var ctor = Class.forName(tweakerName, true, classLoader).getDeclaredConstructor();
+                var tweaker = (ITweaker) ctor.newInstance();
+                allOldTweakers.add(tweaker);
+                if (mainLauncher == null) {
+                    mainLauncher = tweaker;
+                }
+            }
+            for (var tweaker : allNewTweakers) {
+                LOGGER.info("Calling tweak class {}", tweaker.getClass().getName());
+                tweaker.acceptOptions(argumentList, minecraftHome, assetsDir);
+                tweaker.acceptClassLoader(classLoader);
+            }
+            for (var tweaker : allOldTweakers) {
+                LOGGER.info("Calling tweak class {}", tweaker.getClass().getName());
+                tweaker.acceptOptions(argumentList, minecraftHome, assetsDir);
+                tweaker.acceptClassLoader(classLoader);
+            }
+            if (mainLauncher == null) {
+                LOGGER.fatal("Unable to launch, a valid launcher has not been provided.");
                 System.exit(1);
             }
-
-            String launchTarget = firstTweaker.getLaunchTarget();
-            Class<?> clazz = Class.forName(launchTarget, false, classLoader);
-            Method mainMethod = clazz.getMethod("main", String[].class);
-
-            LOGGER.info("Launching wrapped minecraft [{}]", launchTarget);
-            mainMethod.invoke(null, (Object) argumentList.toArray(new String[0]));
-
+            LOGGER.info("Launching wrapped minecraft [{}]", mainLauncher.getClass().getName());
+            mainLauncher.launch(argumentList);
         } catch (Throwable t) {
             LOGGER.fatal("Unable to launch", t);
             System.exit(1);
         }
+
     }
 
 }

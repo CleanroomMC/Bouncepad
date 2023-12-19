@@ -1,8 +1,10 @@
 package com.cleanroommc.bouncepad.api;
 
+import java.util.List;
+
 @FunctionalInterface
 public interface Launcher {
 
-    void launch(String[] arguments) throws Exception;
+    void launch(List<String> arguments) throws Exception;
 
 }

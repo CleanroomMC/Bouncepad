@@ -20,10 +20,10 @@ public interface ITweaker extends Launcher, Tweaker {
     String[] getLaunchArguments();
 
     @Override
-    default void launch(String[] arguments) throws Exception {
+    default void launch(List<String> arguments) throws Exception {
         Class<?> clazz = Class.forName(getLaunchTarget(), false, Thread.currentThread().getContextClassLoader());
         Method mainMethod = clazz.getMethod("main", String[].class);
-        mainMethod.invoke(null, (Object) arguments);
+        mainMethod.invoke(null, (Object) arguments.toArray(String[]::new));
     }
 
     @Override
