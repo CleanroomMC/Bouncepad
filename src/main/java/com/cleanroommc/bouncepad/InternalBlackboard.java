@@ -17,6 +17,10 @@ class InternalBlackboard implements Blackboard {
 
     private InternalBlackboard() { }
 
+    Object internalPut(String key, Object value) {
+        return this.map.put(key, value);
+    }
+
     @Override
     public Object get(String key) {
         Objects.requireNonNull(key, "Key for the Blackboard must not be null");

@@ -9,17 +9,21 @@ import org.apache.logging.log4j.Logger;
 public class LogWrapper {
 
     public static LogWrapper log = new LogWrapper();
-    private static boolean configured;
 
     private Logger myLog;
 
     private static void configureLogging() {
-        log.myLog = Bouncepad.LOGGER;
-        configured = true;
+        if (log.myLog == null) {
+            log.myLog = Bouncepad.LOGGER;
+        }
     }
 
     public static void retarget(Logger to) {
-        log.myLog = to;
+        if (to != null) {
+            log.myLog = to;
+        } else {
+            log.myLog = Bouncepad.LOGGER;
+        }
     }
 
     public static void log(String logChannel, Level level, String format, Object... data) {
@@ -32,9 +36,7 @@ public class LogWrapper {
     }
 
     public static void log(Level level, String format, Object... data) {
-        if (!configured) {
-            configureLogging();
-        }
+        configureLogging();
         if (format.contains("{}")) {
             log.myLog.log(level, format, data);
         } else {
@@ -52,9 +54,7 @@ public class LogWrapper {
     }
 
     public static void log(Level level, Throwable ex, String format, Object... data) {
-        if (!configured) {
-            configureLogging();
-        }
+        configureLogging();
         if (format.contains("{}")) {
             log.myLog.log(level, format, data);
         } else {

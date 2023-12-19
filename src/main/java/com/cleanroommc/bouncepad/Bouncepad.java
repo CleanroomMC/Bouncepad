@@ -44,6 +44,7 @@ public class Bouncepad {
     }
 
     private static List<URL> getClassPathURLs() {
+        // Same classpaths present in AppClassLoader
         String[] classpaths = System.getProperty("java.class.path").split(File.pathSeparator);
         List<URL> urls = new ArrayList<>();
         try {
@@ -88,26 +89,26 @@ public class Bouncepad {
     }
 
     private static void launch(String[] args) {
-        OptionParser parser = new OptionParser();
-
+        var parser = new OptionParser();
         parser.allowsUnrecognizedOptions();
 
-        OptionSpec<String> profileOption = parser.accepts("version", "The version we launched with").withRequiredArg();
-        OptionSpec<File> gameDirOption = parser.accepts("gameDir", "Alternative game directory").withRequiredArg().ofType(File.class);
-        OptionSpec<File> assetsDirOption = parser.accepts("assetsDir", "Assets directory").withRequiredArg().ofType(File.class);
-        OptionSpec<String> tweakClassOption = parser.accepts("tweakClass", "Tweak class(es) to load").withRequiredArg();
-        OptionSpec<String> nonOption = parser.nonOptions();
+        var profileOption = parser.accepts("version", "The version we launched with").withRequiredArg();
+        var gameDirOption = parser.accepts("gameDir", "Alternative game directory").withRequiredArg().ofType(File.class);
+        var assetsDirOption = parser.accepts("assetsDir", "Assets directory").withRequiredArg().ofType(File.class);
+        var tweakClassOption = parser.accepts("tweakClass", "Tweak class(es) to load").withRequiredArg();
+        var nonOption = parser.nonOptions();
 
         OptionSet options = parser.parse(args);
 
         String profileName = options.valueOf(profileOption);
         minecraftHome = options.valueOf(gameDirOption);
         assetsDir = options.valueOf(assetsDirOption);
-        List<String> tweakClassNames = new ArrayList<>(options.valuesOf(tweakClassOption));
-        BLACKBOARD.map.put("TweakClasses", tweakClassNames);
+
+        var tweakClassNames = new ArrayList<>(options.valuesOf(tweakClassOption));
+        BLACKBOARD.internalPut("TweakClasses", tweakClassNames);
 
         List<String> argumentList = new ArrayList<>();
-        BLACKBOARD.map.put("ArgumentList", argumentList);
+        BLACKBOARD.internalPut("ArgumentList", argumentList);
 
         Set<String> dupeChecker = new HashSet<>();
 
