@@ -1,4 +1,4 @@
-package com.cleanroommc.bouncepad.asm.impl;
+package com.cleanroommc.bouncepad.impl.asm;
 
 import net.minecraft.launchwrapper.IClassTransformer;
 import org.objectweb.asm.*;

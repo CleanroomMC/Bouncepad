@@ -1,6 +1,6 @@
 package com.cleanroommc.bouncepad.test.bumpasmapi;
 
-import com.cleanroommc.bouncepad.asm.impl.BumpASMAPITransformer;
+import com.cleanroommc.bouncepad.impl.asm.BumpASMAPITransformer;
 import com.cleanroommc.bouncepad.test.util.TestClassVisitor;
 import com.cleanroommc.bouncepad.test.util.TransformingClassLoader;
 import org.junit.jupiter.api.Assertions;

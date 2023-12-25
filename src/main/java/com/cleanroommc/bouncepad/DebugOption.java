@@ -1,7 +1,7 @@
 package com.cleanroommc.bouncepad;
 
 
-public enum DebugOptions {
+public enum DebugOption {
 
     EXPLICIT_LOGGING("bouncepad.debug.explicit_logging"),
     SAVE_CLASS_BEFORE_ALL_TRANSFORMATIONS("bouncepad.debug.save_class_before_all_transformations"),
@@ -12,8 +12,8 @@ public enum DebugOptions {
      * Call this to refresh debug properties, should be used after programmatically setting these values on or off
      */
     public static void refreshValues() {
-        for (DebugOptions debugOptions : DebugOptions.values()) {
-            debugOptions.refreshValue();
+        for (DebugOption debugOption : DebugOption.values()) {
+            debugOption.refreshValue();
         }
     }
 
@@ -21,7 +21,7 @@ public enum DebugOptions {
 
     private boolean value;
 
-    DebugOptions(String propertyString) {
+    DebugOption(String propertyString) {
         this.propertyString = propertyString;
         this.refreshValue();
     }

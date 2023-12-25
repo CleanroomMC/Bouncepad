@@ -16,9 +16,8 @@ import java.util.jar.JarFile;
 import java.util.jar.Manifest;
 
 import com.cleanroommc.bouncepad.Bouncepad;
-import com.cleanroommc.bouncepad.DebugOptions;
+import com.cleanroommc.bouncepad.DebugOption;
 import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.LogManager;
 
 @Deprecated(since = "0.5")
 public abstract class LaunchClassLoader extends URLClassLoader {
@@ -68,8 +67,8 @@ public abstract class LaunchClassLoader extends URLClassLoader {
         addTransformerExclusion("net.minecraft.launchwrapper.injector.");
 
         // Prepare folders
-        if (DebugOptions.SAVE_CLASS_BEFORE_ALL_TRANSFORMATIONS.isOn() || DebugOptions.SAVE_CLASS_AFTER_EACH_TRANSFORMATION.isOn() ||
-                DebugOptions.SAVE_CLASS_AFTER_ALL_TRANSFORMATIONS.isOn()) {
+        if (DebugOption.SAVE_CLASS_BEFORE_ALL_TRANSFORMATIONS.isOn() || DebugOption.SAVE_CLASS_AFTER_EACH_TRANSFORMATION.isOn() ||
+                DebugOption.SAVE_CLASS_AFTER_ALL_TRANSFORMATIONS.isOn()) {
             File saveTransformationFolder = new File(Bouncepad.minecraftHome, "save_transformations");
             saveTransformationFolder.mkdirs();
             LogWrapper.info("Transformation related debug options enabled, saving classes to \"%s\"", saveTransformationFolder.getAbsolutePath().replace('\\', '/'));
@@ -182,7 +181,7 @@ public abstract class LaunchClassLoader extends URLClassLoader {
             return clazz;
         } catch (Throwable e) {
             invalidClasses.add(name);
-            if (DebugOptions.EXPLICIT_LOGGING.isOn()) {
+            if (DebugOption.EXPLICIT_LOGGING.isOn()) {
                 LogWrapper.log(Level.ERROR, e, "Exception encountered attempting classloading of %s", name);
             }
             throw new ClassNotFoundException(name, e);
@@ -201,7 +200,7 @@ public abstract class LaunchClassLoader extends URLClassLoader {
             outFile.delete();
         }
 
-        if (DebugOptions.EXPLICIT_LOGGING.isOn()) {
+        if (DebugOption.EXPLICIT_LOGGING.isOn()) {
             LogWrapper.fine("Saving transformed class \"%s\" to \"%s\"", transformedName, outFile.getAbsolutePath().replace('\\', '/'));
         }
 
@@ -258,23 +257,23 @@ public abstract class LaunchClassLoader extends URLClassLoader {
     }
 
     private byte[] runTransformers(final String name, final String transformedName, byte[] basicClass) {
-        if (DebugOptions.SAVE_CLASS_BEFORE_ALL_TRANSFORMATIONS.isOn()) {
+        if (DebugOption.SAVE_CLASS_BEFORE_ALL_TRANSFORMATIONS.isOn()) {
             saveClass(basicClass, transformedName, new File(Bouncepad.minecraftHome, "save_transformations" + File.separator + "before_all"));
         }
-        if (DebugOptions.EXPLICIT_LOGGING.isOn()) {
+        if (DebugOption.EXPLICIT_LOGGING.isOn()) {
             LogWrapper.finest("Beginning transform of {%s (%s)} Start Length: %d", name, transformedName, (basicClass == null ? 0 : basicClass.length));
             for (final IClassTransformer transformer : transformers) {
                 final String transName = transformer.getClass().getName();
                 LogWrapper.finest("Before transformer {%s (%s)} %s: %d", name, transformedName, transName, (basicClass == null ? 0 : basicClass.length));
                 basicClass = transformer.transform(name, transformedName, basicClass);
-                if (DebugOptions.SAVE_CLASS_AFTER_EACH_TRANSFORMATION.isOn()) {
+                if (DebugOption.SAVE_CLASS_AFTER_EACH_TRANSFORMATION.isOn()) {
                     saveClass(basicClass, transformedName, new File(Bouncepad.minecraftHome,
                             "save_transformations" + File.separator + "after_each" + File.separator + transformer.getClass().getName().replace('.', File.separatorChar)));
                 }
                 LogWrapper.finest("After transformer {%s (%s)} %s: %d", name, transformedName, transName, (basicClass == null ? 0 : basicClass.length));
             }
             LogWrapper.finest("Ending transform of {%s (%s)} Start Length: %d", name, transformedName, (basicClass == null ? 0 : basicClass.length));
-        } else if (DebugOptions.SAVE_CLASS_AFTER_EACH_TRANSFORMATION.isOn()) {
+        } else if (DebugOption.SAVE_CLASS_AFTER_EACH_TRANSFORMATION.isOn()) {
             for (final IClassTransformer transformer : transformers) {
                 basicClass = transformer.transform(name, transformedName, basicClass);
                 saveClass(basicClass, transformedName, new File(Bouncepad.minecraftHome,
@@ -285,7 +284,7 @@ public abstract class LaunchClassLoader extends URLClassLoader {
                 basicClass = transformer.transform(name, transformedName, basicClass);
             }
         }
-        if (DebugOptions.SAVE_CLASS_AFTER_ALL_TRANSFORMATIONS.isOn()) {
+        if (DebugOption.SAVE_CLASS_AFTER_ALL_TRANSFORMATIONS.isOn()) {
             saveClass(basicClass, transformedName, new File(Bouncepad.minecraftHome, "save_transformations" + File.separator + "after_all"));
         }
         return basicClass;
@@ -372,7 +371,7 @@ public abstract class LaunchClassLoader extends URLClassLoader {
             final URL classResource = findResource(resourcePath);
 
             if (classResource == null) {
-                if (DebugOptions.EXPLICIT_LOGGING.isOn()) {
+                if (DebugOption.EXPLICIT_LOGGING.isOn()) {
                     LogWrapper.finest("Failed to find class resource %s", resourcePath);
                 }
                 negativeResourceCache.add(name);
@@ -380,7 +379,7 @@ public abstract class LaunchClassLoader extends URLClassLoader {
             }
             classStream = classResource.openStream();
 
-            if (DebugOptions.EXPLICIT_LOGGING.isOn()) {
+            if (DebugOption.EXPLICIT_LOGGING.isOn()) {
                 LogWrapper.finest("Loading class %s from resource %s", name, classResource.toString());
             }
             final byte[] data = readFully(classStream);
