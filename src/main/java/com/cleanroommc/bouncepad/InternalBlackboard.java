@@ -9,13 +9,13 @@ import java.util.function.Consumer;
 
 class InternalBlackboard implements Blackboard {
 
-    static final InternalBlackboard INSTANCE = new InternalBlackboard();
-
-    final Map<String, Object> map = new HashMap<>();
+    final Map<String, Object> map;
 
     Map<String, Consumer<Object>> callbacks;
 
-    private InternalBlackboard() { }
+    InternalBlackboard(Map<String, Object> backing) {
+        this.map = backing;
+    }
 
     Object internalPut(String key, Object value) {
         return this.map.put(key, value);

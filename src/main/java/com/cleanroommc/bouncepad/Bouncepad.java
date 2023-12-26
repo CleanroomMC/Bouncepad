@@ -11,7 +11,6 @@ import zone.rong.imaginebreaker.NativeImagineBreaker;
 
 import java.io.File;
 import java.io.InputStream;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -20,46 +19,35 @@ import java.util.*;
 // TODO: service-fy tweakers, loaders and transformers
 public class Bouncepad {
 
-    public static final Logger LOGGER = LogManager.getLogger("Bouncepad");
-
-    private static final InternalBlackboard BLACKBOARD = InternalBlackboard.INSTANCE;
-
     public static BouncepadClassLoader classLoader;
 
     public static File minecraftHome;
     public static File assetsDir;
 
-    public static void main(String[] args) {
-        Launch.blackboard = InternalBlackboard.INSTANCE.map;
+    private static Logger logger;
+    private static InternalBlackboard blackboard;
 
-        classLoader = new BouncepadClassLoader(getClassPathURLs());
-        Launch.classLoader = classLoader;
+    public static void main(String[] args) {
+        Thread.currentThread().setContextClassLoader(new AdamClassLoader());
+        var backing = new HashMap<String, Object>();
+        Launch.blackboard = backing;
+
+        classLoader = new BouncepadClassLoader();
         Thread.currentThread().setContextClassLoader(classLoader);
 
+        Launch.classLoader = classLoader;
+        logger = LogManager.getLogger("Bouncepad");
+        blackboard = new InternalBlackboard(backing);
+
         runImagineBreaker(); // TODO: not to run unless its Java 9 or above
-
         launch(args);
-    }
-
-    private static List<URL> getClassPathURLs() {
-        // Same classpaths present in AppClassLoader
-        String[] classpaths = System.getProperty("java.class.path").split(File.pathSeparator);
-        List<URL> urls = new ArrayList<>();
-        try {
-            for (String classpath : classpaths) {
-                urls.add(new File(classpath).toURI().toURL());
-            }
-        } catch (MalformedURLException e) {
-            throw new RuntimeException(e);
-        }
-        return urls;
     }
 
     private static void runImagineBreaker() {
         String imagineBreakerLibraryName = System.mapLibraryName("imaginebreaker");
-        URL imagineBreakerLibraryUrl = NativeImagineBreaker.class.getClassLoader().getResource(imagineBreakerLibraryName);
+        URL imagineBreakerLibraryUrl = classLoader.getResource(imagineBreakerLibraryName);
         if (imagineBreakerLibraryUrl == null) {
-            LOGGER.fatal("Unable to launch, {} cannot be found.", imagineBreakerLibraryName);
+            logger.fatal("Unable to launch, {} cannot be found.", imagineBreakerLibraryName);
             System.exit(1);
         } else {
             try {
@@ -68,7 +56,7 @@ public class Bouncepad {
                     Path tempDir = Files.createTempDirectory("bouncepad");
                     tempDir.toFile().deleteOnExit();
                     Path tempFile = tempDir.resolve(imagineBreakerLibraryName);
-                    try (InputStream is = NativeImagineBreaker.class.getClassLoader().getResourceAsStream(imagineBreakerLibraryName)) {
+                    try (InputStream is = classLoader.getResourceAsStream(imagineBreakerLibraryName)) {
                         Files.copy(is, tempFile);
                     }
                     tempFile.toFile().deleteOnExit();
@@ -80,7 +68,7 @@ public class Bouncepad {
                 NativeImagineBreaker.openBaseModules();
                 NativeImagineBreaker.removeAllReflectionFilters();
             } catch (Throwable t) {
-                LOGGER.fatal("Unable to launch, error loading natives", t);
+                logger.fatal("Unable to launch, error loading natives", t);
                 System.exit(1);
             }
         }
@@ -102,17 +90,19 @@ public class Bouncepad {
 
         // var profileName = options.valueOf(profileOption);
         minecraftHome = options.valueOf(gameDirOption);
+        Launch.minecraftHome = minecraftHome;
         assetsDir = options.valueOf(assetsDirOption);
+        Launch.assetsDir = assetsDir;
 
         var oldTeakClassNames = new ArrayList<>(options.valuesOf(tweakClassOption));
-        BLACKBOARD.internalPut("TweakClasses", oldTeakClassNames);
-        BLACKBOARD.put("bouncepad:oldtweakers", oldTeakClassNames);
+        blackboard.internalPut("TweakClasses", oldTeakClassNames);
+        blackboard.put("bouncepad:oldtweakers", oldTeakClassNames);
         var newTweakClassNames = new ArrayList<>(options.valuesOf(tweakerOption));
-        BLACKBOARD.put("bouncepad:tweakers", newTweakClassNames);
+        blackboard.put("bouncepad:tweakers", newTweakClassNames);
 
         var argumentList = new ArrayList<>(options.valuesOf(nonOption));
-        BLACKBOARD.internalPut("ArgumentList", argumentList);
-        BLACKBOARD.put("bouncepad:arguments", argumentList);
+        blackboard.internalPut("ArgumentList", argumentList);
+        blackboard.put("bouncepad:arguments", argumentList);
 
         Launcher mainLauncher = null;
 
@@ -123,7 +113,7 @@ public class Bouncepad {
         try {
             var launcherName = options.valueOf(launcherOption);
             if (options.valueOf(launcherOption) != null) {
-                BLACKBOARD.put("bouncepad:launcher", launcherName);
+                blackboard.put("bouncepad:launcher", launcherName);
                 var ctor = Class.forName(launcherName, true, classLoader).getDeclaredConstructor();
                 mainLauncher = (Launcher) ctor.newInstance();
             }
@@ -134,10 +124,10 @@ public class Bouncepad {
                 var tweakerName = tweakerNamesIterator.next();
                 tweakerNamesIterator.remove();
                 if (!calledTweakers.add(tweakerName)) {
-                    LOGGER.warn("{} tweaker has already been visited, skipping!", tweakerName);
+                    logger.warn("{} tweaker has already been visited, skipping!", tweakerName);
                     continue;
                 }
-                LOGGER.info("Loading {} tweaker", tweakerName);
+                logger.info("Loading {} tweaker", tweakerName);
                 var ctor = Class.forName(tweakerName, true, classLoader).getDeclaredConstructor();
                 var tweaker = (Tweaker) ctor.newInstance();
                 allNewTweakers.add(tweaker);
@@ -151,10 +141,10 @@ public class Bouncepad {
                 var tweakerName = tweakerNamesIterator.next();
                 tweakerNamesIterator.remove();
                 if (!calledTweakers.add(tweakerName)) {
-                    LOGGER.warn("{} tweaker has already been visited, skipping!", tweakerName);
+                    logger.warn("{} tweaker has already been visited, skipping!", tweakerName);
                     continue;
                 }
-                LOGGER.info("Loading {} tweaker", tweakerName);
+                logger.info("Loading {} tweaker", tweakerName);
                 var ctor = Class.forName(tweakerName, true, classLoader).getDeclaredConstructor();
                 var tweaker = (ITweaker) ctor.newInstance();
                 allOldTweakers.add(tweaker);
@@ -163,23 +153,23 @@ public class Bouncepad {
                 }
             }
             for (var tweaker : allNewTweakers) {
-                LOGGER.info("Calling tweak class {}", tweaker.getClass().getName());
+                logger.info("Calling tweak class {}", tweaker.getClass().getName());
                 tweaker.acceptOptions(argumentList, minecraftHome, assetsDir);
                 tweaker.acceptClassLoader(classLoader);
             }
             for (var tweaker : allOldTweakers) {
-                LOGGER.info("Calling tweak class {}", tweaker.getClass().getName());
+                logger.info("Calling tweak class {}", tweaker.getClass().getName());
                 tweaker.acceptOptions(argumentList, minecraftHome, assetsDir);
                 tweaker.acceptClassLoader(classLoader);
             }
             if (mainLauncher == null) {
-                LOGGER.fatal("Unable to launch, a valid launcher has not been provided.");
+                logger.fatal("Unable to launch, a valid launcher has not been provided.");
                 System.exit(1);
             }
-            LOGGER.info("Launching wrapped minecraft [{}]", mainLauncher.getClass().getName());
+            logger.info("Launching wrapped minecraft [{}]", mainLauncher.getClass().getName());
             mainLauncher.launch(argumentList);
         } catch (Throwable t) {
-            LOGGER.fatal("Unable to launch", t);
+            logger.fatal("Unable to launch", t);
             System.exit(1);
         }
 

@@ -1,10 +1,7 @@
 package net.minecraft.launchwrapper;
 
 import java.io.*;
-import java.net.JarURLConnection;
-import java.net.URL;
-import java.net.URLClassLoader;
-import java.net.URLConnection;
+import java.net.*;
 import java.security.CodeSigner;
 import java.security.CodeSource;
 import java.util.*;
@@ -24,8 +21,8 @@ public abstract class LaunchClassLoader extends URLClassLoader {
 
     public static final int BUFFER_SIZE = 1 << 12;
 
-    private List<URL> sources;
-    private ClassLoader parent = getClass().getClassLoader();
+    private final List<URL> sources;
+    private final ThreadLocal<byte[]> loadBuffer = new ThreadLocal<>();
 
     private List<IClassTransformer> transformers = new ArrayList<>(2);
     private Map<String, Class<?>> cachedClasses = new ConcurrentHashMap<>();
@@ -38,13 +35,31 @@ public abstract class LaunchClassLoader extends URLClassLoader {
 
     private IClassNameTransformer renameTransformer;
 
-    private final ThreadLocal<byte[]> loadBuffer = new ThreadLocal<>();
-
     private static final String[] RESERVED_NAMES = {
             "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8",
             "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9"
     };
 
+    private static List<URL> getOriginClassPathURLs() {
+        // Same classpaths present in AppClassLoader
+        String[] classpaths = System.getProperty("java.class.path").split(File.pathSeparator);
+        List<URL> urls = new ArrayList<>();
+        try {
+            for (String classpath : classpaths) {
+                urls.add(new File(classpath).toURI().toURL());
+            }
+        } catch (MalformedURLException e) {
+            throw new RuntimeException(e);
+        }
+        return urls;
+    }
+
+    protected LaunchClassLoader(ClassLoader parentClassLoader) {
+        super(new URL[0], parentClassLoader);
+        this.sources = getOriginClassPathURLs();
+    }
+
+    @Deprecated
     public LaunchClassLoader(URL[] sources) {
         super(sources, null);
         this.sources = new ArrayList<>(List.of(sources));
@@ -65,23 +80,6 @@ public abstract class LaunchClassLoader extends URLClassLoader {
         addTransformerExclusion("com.google.common.");
         addTransformerExclusion("org.bouncycastle.");
         addTransformerExclusion("net.minecraft.launchwrapper.injector.");
-
-        // Prepare folders
-        if (DebugOption.SAVE_CLASS_BEFORE_ALL_TRANSFORMATIONS.isOn() || DebugOption.SAVE_CLASS_AFTER_EACH_TRANSFORMATION.isOn() ||
-                DebugOption.SAVE_CLASS_AFTER_ALL_TRANSFORMATIONS.isOn()) {
-            File saveTransformationFolder = new File(Bouncepad.minecraftHome, "save_transformations");
-            saveTransformationFolder.mkdirs();
-            LogWrapper.info("Transformation related debug options enabled, saving classes to \"%s\"", saveTransformationFolder.getAbsolutePath().replace('\\', '/'));
-
-            File beforeFolder = new File(saveTransformationFolder, "before_all");
-            beforeFolder.mkdirs();
-            File afterEachFolder = new File(saveTransformationFolder, "after_each");
-            afterEachFolder.mkdirs();
-            File afterAllFolder = new File(saveTransformationFolder, "after_all");
-            afterAllFolder.mkdirs();
-
-
-        }
 
     }
 
@@ -105,7 +103,7 @@ public abstract class LaunchClassLoader extends URLClassLoader {
 
         for (final String exception : classLoaderExceptions) {
             if (name.startsWith(exception)) {
-                return parent.loadClass(name);
+                return super.loadClass(name);
             }
         }
 
