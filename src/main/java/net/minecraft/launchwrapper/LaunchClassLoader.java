@@ -3,8 +3,9 @@ package net.minecraft.launchwrapper;
 import java.io.*;
 import java.net.*;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
+import com.cleanroommc.bouncepad.Bouncepad;
+import com.cleanroommc.bouncepad.DebugOption;
 import org.apache.logging.log4j.Level;
 
 @Deprecated(since = "0.5")
@@ -63,7 +64,6 @@ public abstract class LaunchClassLoader extends URLClassLoader {
 
     }
 
-    @Deprecated(forRemoval = true)
     public void registerTransformer(String transformerClassName) {
         try {
             IClassTransformer transformer = (IClassTransformer) loadClass(transformerClassName).newInstance();
@@ -74,6 +74,12 @@ public abstract class LaunchClassLoader extends URLClassLoader {
         } catch (Exception e) {
             LogWrapper.log(Level.ERROR, e, "A critical problem occurred registering the ASM transformer class %s", transformerClassName);
         }
+    }
+
+    @Override
+    public void addURL(URL url) {
+        super.addURL(url);
+        this.sources.add(url);
     }
 
     public List<URL> getSources() {
@@ -93,7 +99,44 @@ public abstract class LaunchClassLoader extends URLClassLoader {
     }
 
     public byte[] getClassBytes(String name) throws IOException {
-        throw new UnsupportedOperationException("");
+        var path = name.replace('.', '/').concat(".class");
+        var resource = this.findResource(path);
+        if (resource == null) {
+            resource = this.getResource(path);
+            if (resource == null) {
+                if (DebugOption.EXPLICIT_LOGGING.isOn()) {
+                    Bouncepad.getLogger().debug("Cannot find resource of class: [{}]", name);
+                }
+                if (this.renameTransformer == null) {
+                    return null;
+                }
+                var transformedName = this.renameTransformer.remapClassName(name);
+                if (transformedName.equals(name)) {
+                    return null;
+                } else {
+                    return this.getClassBytes(transformedName);
+                }
+            }
+        }
+        var classData = new byte[4];
+        var conn = resource.openConnection();
+        try (var is = conn.getInputStream()) {
+            var buffer = new ByteArrayOutputStream();
+            int read;
+            while ((read = is.readNBytes(classData, 0, classData.length)) != 0) {
+                buffer.write(classData, 0, read);
+            }
+            classData = buffer.toByteArray();
+        }
+        if (DebugOption.EXPLICIT_LOGGING.isOn()) {
+            Bouncepad.getLogger().debug("Loading [{}]'s byte array from resource: [{}]", name, resource);
+        }
+        return classData;
+    }
+
+    @Deprecated(since = "0.6")
+    public void clearNegativeEntries(Set<String> entriesToClear) {
+        Bouncepad.getLogger().warn("LaunchClassLoader#clearNegativeEntries is deprecated and has no effect as of Bouncepad 0.6.");
     }
 
 }
