@@ -50,11 +50,14 @@ public class BouncepadClassLoader extends LaunchClassLoader {
             resource = this.getResource(path);
             if (resource == null) {
                 // TODO: should we cache the results to avoid duplicate resource checking calls?
+                if (this.renameTransformer == null) {
+                    throw new ClassNotFoundException(name);
+                }
                 var transformedName = this.renameTransformer.remapClassName(name);
                 if (transformedName.equals(name)) {
                     throw new ClassNotFoundException(name);
                 } else {
-                    return findClass(transformedName);
+                    return this.findClass(transformedName);
                 }
             }
         }
