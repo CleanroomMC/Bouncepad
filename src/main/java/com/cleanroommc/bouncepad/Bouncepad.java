@@ -124,7 +124,7 @@ public class Bouncepad {
             }
 
             var tweakers = new ArrayList<Tweaker>();
-            blackboard.internalPut("Tweakers", tweakers);
+            blackboard.internalPut("Tweaks", tweakers);
             blackboard.put("bouncepad:tweakers", tweakers);
 
             Iterator<String> tweakerNamesIterator;
