@@ -119,6 +119,44 @@ public class BouncepadClassLoader extends LaunchClassLoader {
         return clazz;
     }
 
+    // Copied and modified from above
+    @Override
+    public byte[] getClassBytes(String name) throws IOException {
+        var path = name.replace('.', '/').concat(".class");
+        var resource = this.findResource(path);
+        if (resource == null) {
+            resource = this.getResource(path);
+            if (resource == null) {
+                if (DebugOption.EXPLICIT_LOGGING.isOn()) {
+                    Bouncepad.getLogger().debug("Cannot find resource of class: [{}]", name);
+                }
+                if (this.renameTransformer == null) {
+                    return null;
+                }
+                var transformedName = this.renameTransformer.remapClassName(name);
+                if (transformedName.equals(name)) {
+                    return null;
+                } else {
+                    return this.getClassBytes(transformedName);
+                }
+            }
+        }
+        var classData = new byte[4];
+        var conn = resource.openConnection();
+        try (var is = conn.getInputStream()) {
+            var buffer = new ByteArrayOutputStream();
+            int read;
+            while ((read = is.readNBytes(classData, 0, classData.length)) != 0) {
+                buffer.write(classData, 0, read);
+            }
+            classData = buffer.toByteArray();
+        }
+        if (DebugOption.EXPLICIT_LOGGING.isOn()) {
+            Bouncepad.getLogger().debug("Loading [{]]'s byte array from resource: [{}]", name, resource);
+        }
+        return classData;
+    }
+
     protected byte[] transformClassData(String name, byte[] classData) {
         if (DebugOption.SAVE_CLASS_BEFORE_ALL_TRANSFORMATIONS.isOn()) {
             this.saveClassToDisk(classData, name, BEFORE_ALL_TRANSFORMATIONS_SAVE_FOLDER);
