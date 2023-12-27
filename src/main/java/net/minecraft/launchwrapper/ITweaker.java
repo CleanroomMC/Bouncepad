@@ -1,8 +1,8 @@
 package net.minecraft.launchwrapper;
 
 import com.cleanroommc.bouncepad.BouncepadClassLoader;
-import com.cleanroommc.bouncepad.api.Launcher;
-import com.cleanroommc.bouncepad.api.Tweaker;
+import com.cleanroommc.bouncepad.api.tweaker.Launcher;
+import com.cleanroommc.bouncepad.api.tweaker.Tweaker;
 
 import java.io.File;
 import java.lang.reflect.Method;

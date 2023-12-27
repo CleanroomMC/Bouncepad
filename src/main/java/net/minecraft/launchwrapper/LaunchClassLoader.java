@@ -33,7 +33,7 @@ public abstract class LaunchClassLoader extends URLClassLoader {
     private Map<String,byte[]> resourceCache = new ConcurrentHashMap<>(1000);
     private Set<String> negativeResourceCache = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
-    private IClassNameTransformer renameTransformer;
+    protected IClassNameTransformer renameTransformer;
 
     private static final String[] RESERVED_NAMES = {
             "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8",

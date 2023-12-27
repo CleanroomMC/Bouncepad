@@ -1,7 +1,7 @@
 package com.cleanroommc.bouncepad;
 
-import com.cleanroommc.bouncepad.api.Launcher;
-import com.cleanroommc.bouncepad.api.Tweaker;
+import com.cleanroommc.bouncepad.api.tweaker.Launcher;
+import com.cleanroommc.bouncepad.api.tweaker.Tweaker;
 import joptsimple.OptionParser;
 import net.minecraft.launchwrapper.ITweaker;
 import net.minecraft.launchwrapper.Launch;

@@ -1,4 +1,4 @@
-package com.cleanroommc.bouncepad.api;
+package com.cleanroommc.bouncepad.api.tweaker;
 
 import java.util.List;
 

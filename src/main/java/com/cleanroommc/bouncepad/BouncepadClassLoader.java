@@ -50,7 +50,12 @@ public class BouncepadClassLoader extends LaunchClassLoader {
             resource = this.getResource(path);
             if (resource == null) {
                 // TODO: should we cache the results to avoid duplicate resource checking calls?
-                throw new ClassNotFoundException(name);
+                var transformedName = this.renameTransformer.remapClassName(name);
+                if (transformedName.equals(name)) {
+                    throw new ClassNotFoundException(name);
+                } else {
+                    return findClass(transformedName);
+                }
             }
         }
         // var startTime = System.nanoTime(); TODO: used for internal performance tracking
@@ -83,7 +88,7 @@ public class BouncepadClassLoader extends LaunchClassLoader {
             // TODO: Package sealing, respect it to what extent?
             if (this.getAndVerifyPackage(pkgName, manifest, resource) == null) {
                 try {
-                    if (manifest != null) {
+                    if (manifest != null && !name.startsWith("net.minecraft.")) {
                         this.definePackage(pkgName, manifest, resource);
                     } else {
                         this.definePackage(pkgName, null, null, null, null, null, null, null);
@@ -114,11 +119,11 @@ public class BouncepadClassLoader extends LaunchClassLoader {
     }
 
     // Copied from URLClassLoader#getAndVerifyPackage
-    protected Package getAndVerifyPackage(String pkgName, Manifest manifest, URL url) {
+    protected Package getAndVerifyPackage(String pkgName, Manifest manifest, URL resource) {
         var pkg = this.getDefinedPackage(pkgName);
         if (pkg.isSealed()) {
             // Verify that code source URL is the same.
-            if (!pkg.isSealed(url)) {
+            if (!pkg.isSealed(resource)) {
                 throw new SecurityException("sealing violation: package " + pkgName + " is sealed");
             }
         } else {
