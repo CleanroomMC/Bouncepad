@@ -43,6 +43,10 @@ public class Bouncepad {
         launch(args);
     }
 
+    public static Logger getLogger() {
+        return logger;
+    }
+
     private static void runImagineBreaker() {
         String imagineBreakerLibraryName = System.mapLibraryName("imaginebreaker");
         URL imagineBreakerLibraryUrl = classLoader.getResource(imagineBreakerLibraryName);

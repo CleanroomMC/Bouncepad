@@ -3,11 +3,8 @@ package com.cleanroommc.bouncepad;
 import jdk.internal.access.SharedSecrets;
 import net.minecraft.launchwrapper.IClassTransformer;
 import net.minecraft.launchwrapper.LaunchClassLoader;
-import net.minecraft.launchwrapper.LogWrapper;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.net.JarURLConnection;
 import java.net.URL;
 import java.security.CodeSigner;
@@ -19,6 +16,14 @@ import java.util.jar.Manifest;
 
 // TODO: implement logging w/ DebugOptions
 public class BouncepadClassLoader extends LaunchClassLoader {
+
+    private static final File BEFORE_ALL_TRANSFORMATIONS_SAVE_FOLDER =  new File(Bouncepad.minecraftHome, "save_transformations" + File.separator + "before_all");
+    private static final File AFTER_ALL_TRANSFORMATIONS_SAVE_FOLDER =  new File(Bouncepad.minecraftHome, "save_transformations" + File.separator + "after_all");
+
+    protected static File getAfterEachTransformationSaveFolder(Class<?> clazz) {
+        return new File(Bouncepad.minecraftHome,
+                "save_transformations" + File.separator + "after_each" + File.separator + clazz.getName().replace('.', File.separatorChar));
+    }
 
     private final Map<String, Class<?>> loadedClasses = new ConcurrentHashMap<>(4096);
 
@@ -115,8 +120,32 @@ public class BouncepadClassLoader extends LaunchClassLoader {
     }
 
     protected byte[] transformClassData(String name, byte[] classData) {
-        for (IClassTransformer transformer : this.transformers) {
-            classData = transformer.transform(name, name, classData);
+        if (DebugOption.SAVE_CLASS_BEFORE_ALL_TRANSFORMATIONS.isOn()) {
+            this.saveClassToDisk(classData, name, BEFORE_ALL_TRANSFORMATIONS_SAVE_FOLDER);
+        }
+        if (DebugOption.EXPLICIT_LOGGING.isOn()) {
+            var logger = Bouncepad.getLogger();
+            logger.debug("Begin transformation of class: [{}] with [{}]-length byte array", name, classData == null ? "null" : classData.length);
+            for (IClassTransformer transformer : this.transformers) {
+                final var transformerName = transformer.getClass().getName();
+                classData = transformer.transform(name, name, classData);
+                logger.debug("[Transformer: {}]: After transformation of [{]], now results in a [{}]-length byte array", transformerName, name, classData == null ? "null" : classData.length);
+                if (DebugOption.SAVE_CLASS_AFTER_EACH_TRANSFORMATION.isOn()) {
+                    this.saveClassToDisk(classData, name, getAfterEachTransformationSaveFolder(transformer.getClass()));
+                }
+            }
+        } else if (DebugOption.SAVE_CLASS_AFTER_EACH_TRANSFORMATION.isOn()) {
+            for (IClassTransformer transformer : this.transformers) {
+                classData = transformer.transform(name, name, classData);
+                this.saveClassToDisk(classData, name, getAfterEachTransformationSaveFolder(transformer.getClass()));
+            }
+        } else {
+            for (IClassTransformer transformer : this.transformers) {
+                classData = transformer.transform(name, name, classData);
+            }
+        }
+        if (DebugOption.SAVE_CLASS_AFTER_ALL_TRANSFORMATIONS.isOn()) {
+            this.saveClassToDisk(classData, name, AFTER_ALL_TRANSFORMATIONS_SAVE_FOLDER);
         }
         return classData;
     }
@@ -125,13 +154,12 @@ public class BouncepadClassLoader extends LaunchClassLoader {
     protected Package getAndVerifyPackage(String pkgName, Manifest manifest, URL resource) {
         var pkg = this.getDefinedPackage(pkgName);
         if (pkg.isSealed()) {
-            // Verify that code source URL is the same.
+            // Verify that code source URL is the same
             if (!pkg.isSealed(resource)) {
                 throw new SecurityException("sealing violation: package " + pkgName + " is sealed");
             }
         } else {
-            // Make sure we are not attempting to seal the package
-            // at this code source URL.
+            // Make sure we are not attempting to seal the package at this code source URL
             if (manifest != null && this.isSealed(pkgName, manifest)) {
                 throw new SecurityException("sealing violation: can't seal package " + pkgName + ": already loaded");
             }
@@ -145,7 +173,7 @@ public class BouncepadClassLoader extends LaunchClassLoader {
                 DebugOption.SAVE_CLASS_AFTER_ALL_TRANSFORMATIONS.isOn()) {
             File saveTransformationFolder = new File(Bouncepad.minecraftHome, "save_transformations");
             saveTransformationFolder.mkdirs();
-            LogWrapper.info("Transformation related debug options enabled, saving classes to \"%s\"",
+            Bouncepad.getLogger().info("Transformation related debug options enabled, saving classes to [{}]",
                     saveTransformationFolder.getAbsolutePath().replace('\\', '/'));
             File beforeFolder = new File(saveTransformationFolder, "before_all");
             beforeFolder.mkdirs();
@@ -169,6 +197,25 @@ public class BouncepadClassLoader extends LaunchClassLoader {
             }
         }
         return "true".equalsIgnoreCase(sealed);
+    }
+
+    private void saveClassToDisk(byte[] classData, String name, File folder) {
+        File outFile = new File(folder, name.replace('.', File.separatorChar) + ".class");
+        File outDir = outFile.getParentFile();
+        if (!outDir.exists()) {
+            outDir.mkdirs();
+        }
+        if (outFile.exists()) {
+            outFile.delete();
+        }
+        if (DebugOption.EXPLICIT_LOGGING.isOn()) {
+            Bouncepad.getLogger().debug("Saving transformed class [{}] to [{}]", name, outFile.getAbsolutePath().replace('\\', '/'));
+        }
+        try (var output = new FileOutputStream(outFile)) {
+            output.write(classData);
+        } catch (IOException e) {
+            Bouncepad.getLogger().warn("Could not save transformed class [{}]", name, e);
+        }
     }
 
 }
