@@ -105,7 +105,7 @@ public class Bouncepad {
         blackboard.put("bouncepad:tweakers", newTweakClassNames);
 
         var extraArgs = options.valuesOf(nonOption);
-        var argumentList = new ArrayList<>();
+        var argumentList = new ArrayList<String>();
         blackboard.internalPut("ArgumentList", argumentList);
         blackboard.put("bouncepad:arguments", argumentList);
 
