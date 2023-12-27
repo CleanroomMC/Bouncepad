@@ -104,6 +104,7 @@ public class Bouncepad {
         var newTweakClassNames = new ArrayList<>(options.valuesOf(tweakerOption));
         blackboard.put("bouncepad:tweakers", newTweakClassNames);
 
+        var extraArgs = options.valuesOf(nonOption);
         var argumentList = new ArrayList<>(options.valuesOf(nonOption));
         blackboard.internalPut("ArgumentList", argumentList);
         blackboard.put("bouncepad:arguments", argumentList);
@@ -156,19 +157,25 @@ public class Bouncepad {
                     mainLauncher = tweaker;
                 }
             }
+            if (mainLauncher == null) {
+                logger.fatal("Unable to launch, a valid launcher has not been provided.");
+                System.exit(1);
+            }
             for (var tweaker : allNewTweakers) {
                 logger.info("Calling tweak class {}", tweaker.getClass().getName());
-                tweaker.acceptOptions(argumentList, minecraftHome, assetsDir);
+                tweaker.acceptOptions(extraArgs, minecraftHome, assetsDir);
                 tweaker.acceptClassLoader(classLoader);
             }
             for (var tweaker : allOldTweakers) {
                 logger.info("Calling tweak class {}", tweaker.getClass().getName());
-                tweaker.acceptOptions(argumentList, minecraftHome, assetsDir);
+                tweaker.acceptOptions(extraArgs, minecraftHome, assetsDir);
                 tweaker.acceptClassLoader(classLoader);
             }
-            if (mainLauncher == null) {
-                logger.fatal("Unable to launch, a valid launcher has not been provided.");
-                System.exit(1);
+            for (var tweaker : allNewTweakers) {
+                tweaker.supplyArguments(argumentList);
+            }
+            for (var tweaker : allOldTweakers) {
+                tweaker.supplyArguments(argumentList);
             }
             logger.info("Launching wrapped minecraft [{}]", mainLauncher.getClass().getName());
             mainLauncher.launch(argumentList);
