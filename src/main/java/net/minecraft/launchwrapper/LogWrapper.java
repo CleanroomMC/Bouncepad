@@ -14,7 +14,7 @@ public class LogWrapper {
 
     private static void configureLogging() {
         if (log.myLog == null) {
-            log.myLog = Bouncepad.LOGGER;
+            log.myLog = Bouncepad.getLogger();
         }
     }
 
@@ -22,7 +22,7 @@ public class LogWrapper {
         if (to != null) {
             log.myLog = to;
         } else {
-            log.myLog = Bouncepad.LOGGER;
+            log.myLog = Bouncepad.getLogger();
         }
     }
 
