@@ -21,10 +21,10 @@ public abstract class LaunchClassLoader extends URLClassLoader {
 
     public static final int BUFFER_SIZE = 1 << 12;
 
-    private final List<URL> sources;
+    protected final List<URL> sources;
     private final ThreadLocal<byte[]> loadBuffer = new ThreadLocal<>();
 
-    private List<IClassTransformer> transformers = new ArrayList<>(2);
+    protected List<IClassTransformer> transformers = new ArrayList<>(2);
     private Map<String, Class<?>> cachedClasses = new ConcurrentHashMap<>();
     private Set<String> invalidClasses = new HashSet<>(1000);
 
@@ -286,12 +286,6 @@ public abstract class LaunchClassLoader extends URLClassLoader {
             saveClass(basicClass, transformedName, new File(Bouncepad.minecraftHome, "save_transformations" + File.separator + "after_all"));
         }
         return basicClass;
-    }
-
-    @Override
-    public void addURL(final URL url) {
-        super.addURL(url);
-        sources.add(url);
     }
 
     public List<URL> getSources() {

@@ -1,11 +1,23 @@
 package com.cleanroommc.bouncepad;
 
+import jdk.internal.access.SharedSecrets;
+import net.minecraft.launchwrapper.IClassTransformer;
 import net.minecraft.launchwrapper.LaunchClassLoader;
 import net.minecraft.launchwrapper.LogWrapper;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
+import java.net.URL;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.jar.Attributes.Name;
+import java.util.jar.Manifest;
 
+// TODO: implement logging w/ DebugOptions
 public class BouncepadClassLoader extends LaunchClassLoader {
+
+    private final Map<String, Class<?>> loadedClasses = new ConcurrentHashMap<>(4096);
 
     BouncepadClassLoader() {
         this(BouncepadClassLoader.class.getClassLoader());
@@ -16,13 +28,96 @@ public class BouncepadClassLoader extends LaunchClassLoader {
         this.prepareDebugFolders();
     }
 
-    // TODO: implement these, but w/ checks,
-    /*
     @Override
     public void addURL(URL url) {
-
+        super.addURL(url);
+        this.sources.add(url);
     }
-     */
+
+    @Override
+    public Class<?> findClass(final String name) throws ClassNotFoundException {
+        var clazz = this.loadedClasses.get(name);
+        if (clazz != null) {
+            return clazz;
+        }
+        var path = name.replace('.', '/').concat(".class");
+        // TODO: Find out if prioritizing our own classloader first is troublesome
+        var resource = this.findResource(path);
+        if (resource == null) {
+            resource = this.getResource(path);
+            if (resource == null) {
+                // TODO: should we cache the results to avoid duplicate resource checking calls?
+                throw new ClassNotFoundException(name);
+            }
+        }
+        // var startTime = System.nanoTime(); TODO: used for internal performance tracking
+        var lastDivider = name.lastIndexOf('.');
+        if (lastDivider != -1) {
+            var pkgName = name.substring(0, lastDivider);
+            var pkg = this.getAndVerifyPackage(pkgName, null, resource);
+            // TODO: Package sealing, respect it to what extent?
+            if (pkg == null) {
+                try {
+                    pkg = this.definePackage(pkgName, null, null, null, null, null, null, null);
+                } catch (IllegalArgumentException e) {
+                    // We are a parallel-capable classloader - we have to verify for race-conditions
+                    if (this.getAndVerifyPackage(pkgName, null, resource) == null) {
+                        throw new AssertionError("Cannot find package " + pkgName);
+                    }
+                }
+            }
+        }
+        var classData = new byte[4]; // TODO: make internal caching byte array?
+        try (var is = resource.openStream()) {
+            var buffer = new ByteArrayOutputStream();
+            int read;
+            while ((read = is.readNBytes(classData, 0, classData.length)) != 0) {
+                buffer.write(classData, 0, read);
+            }
+            classData = buffer.toByteArray();
+        } catch (IOException e) {
+            throw new RuntimeException(e); // TODO: Demote to logging + return null array?
+        }
+        // TODO: CodeSigners
+        // TODO: CodeSource
+
+        // TODO: implement custom bytecode processing chain
+
+        classData = this.transformClassData(name, classData);
+
+        clazz = this.defineClass(name, classData, 0, classData.length);
+        this.loadedClasses.put(name, clazz);
+        return clazz;
+    }
+
+    protected byte[] transformClassData(String name, byte[] classData) {
+        for (IClassTransformer transformer : this.transformers) {
+            classData = transformer.transform(name, name, classData);
+        }
+        return classData;
+    }
+
+    // Copied from URLClassLoader#getAndVerifyPackage
+    protected Package getAndVerifyPackage(String pkgName, Manifest manifest, URL url) {
+        var pkg = this.getDefinedPackage(pkgName);
+        if (pkg.isSealed()) {
+            // Verify that code source URL is the same.
+            if (!pkg.isSealed(url)) {
+                throw new SecurityException("sealing violation: package " + pkgName + " is sealed");
+            }
+        } else {
+            // Make sure we are not attempting to seal the package
+            // at this code source URL.
+                    /*
+                    if ((man != null) && this.isSealed(pkgName, man)) {
+                        throw new SecurityException(
+                                "sealing violation: can't seal package " + pkgname +
+                                        ": already loaded");
+                    }
+                    */
+        }
+        return pkg;
+    }
 
     private void prepareDebugFolders() {
         if (DebugOption.SAVE_CLASS_BEFORE_ALL_TRANSFORMATIONS.isOn() ||
@@ -39,6 +134,21 @@ public class BouncepadClassLoader extends LaunchClassLoader {
             File afterAllFolder = new File(saveTransformationFolder, "after_all");
             afterAllFolder.mkdirs();
         }
+    }
+
+    // Also copied from URLClassLoader
+    private boolean isSealed(String name, Manifest manifest) {
+        var attr = SharedSecrets.javaUtilJarAccess().getTrustedAttributes(manifest, name.replace('.', '/').concat("/"));
+        String sealed = null;
+        if (attr != null) {
+            sealed = attr.getValue(Name.SEALED);
+        }
+        if (sealed == null) {
+            if ((attr = manifest.getMainAttributes()) != null) {
+                sealed = attr.getValue(Name.SEALED);
+            }
+        }
+        return "true".equalsIgnoreCase(sealed);
     }
 
 }
