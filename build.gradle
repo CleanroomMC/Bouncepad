@@ -5,7 +5,8 @@ plugins {
 }
 
 group 'com.cleanroommc'
-version '0.4'
+version '0.5'
+archivesBaseName = 'bouncepad'
 
 def compiler_arguments = [
         '--add-exports=java.base/jdk.internal.access=ALL-UNNAMED',
