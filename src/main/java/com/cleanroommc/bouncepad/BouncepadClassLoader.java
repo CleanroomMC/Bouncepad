@@ -40,6 +40,10 @@ public class BouncepadClassLoader extends LaunchClassLoader {
         this.prepareDebugFolders();
     }
 
+    public boolean isClassLoaded(String name) {
+        return this.loadedClasses.containsKey(name.replace('/', '.'));
+    }
+
     @Override
     public Class<?> findClass(final String name) throws ClassNotFoundException {
         var clazz = this.loadedClasses.get(name);
