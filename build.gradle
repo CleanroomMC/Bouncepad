@@ -40,7 +40,10 @@ dependencies {
     implementation 'net.sf.jopt-simple:jopt-simple:5.0.4'
 
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.1'
+    testImplementation 'org.openjdk.jmh:jmh-core:1.36'
+    testImplementation 'org.openjdk.jol:jol-core:0.17'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.1'
+    testAnnotationProcessor 'org.openjdk.jmh:jmh-generator-annprocess:1.36'
 
 }
 
