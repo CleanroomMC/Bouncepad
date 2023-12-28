@@ -25,6 +25,10 @@ public class BouncepadClassLoader extends LaunchClassLoader {
                 "save_transformations" + File.separator + "after_each" + File.separator + clazz.getName().replace('.', File.separatorChar));
     }
 
+    static {
+        ClassLoader.registerAsParallelCapable();
+    }
+
     private final Map<String, Class<?>> loadedClasses = new ConcurrentHashMap<>(4096);
 
     BouncepadClassLoader() {
