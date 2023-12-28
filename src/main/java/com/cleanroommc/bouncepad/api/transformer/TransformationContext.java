@@ -1,7 +1,10 @@
 package com.cleanroommc.bouncepad.api.transformer;
 
-import org.objectweb.asm.ClassVisitor;
+import com.cleanroommc.bouncepad.api.asm.cp.ConstantPool;
+import org.objectweb.asm.tree.ClassNode;
 
-public record TransformationContext(ClassVisitor classVisitor) {
+import java.util.function.Supplier;
+
+public record TransformationContext(ConstantPool pool, Supplier<ClassNode> nodeGetter) {
 
 }
