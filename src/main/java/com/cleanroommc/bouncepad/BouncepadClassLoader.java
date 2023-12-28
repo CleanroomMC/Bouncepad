@@ -1,9 +1,11 @@
 package com.cleanroommc.bouncepad;
 
+import com.cleanroommc.bouncepad.api.asm.generator.ClassGenerator;
 import com.cleanroommc.bouncepad.impl.asm.BumpASMAPITransformer;
 import jdk.internal.access.SharedSecrets;
 import net.minecraft.launchwrapper.IClassTransformer;
 import net.minecraft.launchwrapper.LaunchClassLoader;
+import org.objectweb.asm.Opcodes;
 
 import java.io.*;
 import java.net.JarURLConnection;
@@ -12,6 +14,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.CodeSigner;
 import java.security.CodeSource;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.jar.Attributes.Name;
@@ -31,6 +35,7 @@ public class BouncepadClassLoader extends LaunchClassLoader {
     }
 
     private final Map<String, Class<?>> loadedClasses = new ConcurrentHashMap<>(4096);
+    private final List<ClassGenerator> classGenerators = new ArrayList<>();
 
     BouncepadClassLoader() {
         this(BouncepadClassLoader.class.getClassLoader());
@@ -40,13 +45,17 @@ public class BouncepadClassLoader extends LaunchClassLoader {
         super(parentClassLoader);
     }
 
-    void init() {
-        // TODO: Mixin Staging
-        this.registerTransformer(BumpASMAPITransformer.class.getName());
+    public void addClassGenerator(ClassGenerator generator) {
+        this.classGenerators.add(generator);
     }
 
     public boolean isClassLoaded(String name) {
         return this.loadedClasses.containsKey(name.replace('/', '.'));
+    }
+
+    void init() {
+        // TODO: Mixin Staging
+        this.registerTransformer(BumpASMAPITransformer.class.getName());
     }
 
     @Override
@@ -58,44 +67,63 @@ public class BouncepadClassLoader extends LaunchClassLoader {
         var path = name.replace('.', '/').concat(".class");
         // TODO: Find out if prioritizing our own classloader first is troublesome
         var resource = this.findResource(path);
+        // var startTime = System.nanoTime(); TODO: used for internal performance tracking
+        boolean runTransformers = true;
+        byte[] classData = null; // TODO: make internal caching byte array?
         if (resource == null) {
             resource = this.getResource(path);
             if (resource == null) {
-                // TODO: should we cache the results to avoid duplicate resource checking calls?
-                if (this.renameTransformer == null) {
-                    throw new ClassNotFoundException(name);
+                // Check if any class generators accept this name
+                for (var classGenerator : this.classGenerators) {
+                    if (classGenerator.accept(name)) {
+                        try {
+                            classData = classGenerator.generateClass(Opcodes.ASM9, name);
+                            runTransformers = classGenerator.acceptTransformers(name);
+                            Bouncepad.logger().info("Class generator [{}] generated class [{}]", classGenerator.getClass().getName(), name);
+                            break;
+                        } catch (Throwable t) {
+                            Bouncepad.logger().fatal("Class generator [{}] was unable to complete for [{}]", classGenerator.getClass().getName(), name);
+                        }
+                    }
                 }
-                var transformedName = this.renameTransformer.remapClassName(name);
-                if (transformedName.equals(name)) {
-                    throw new ClassNotFoundException(name);
-                } else {
-                    return this.findClass(transformedName);
+                if (classData == null) {
+                    // TODO: should we cache the results to avoid duplicate resource checking calls?
+                    if (this.renameTransformer == null) {
+                        throw new ClassNotFoundException(name);
+                    }
+                    var transformedName = this.renameTransformer.remapClassName(name);
+                    if (transformedName.equals(name)) {
+                        throw new ClassNotFoundException(name);
+                    } else {
+                        return this.findClass(transformedName);
+                    }
                 }
             }
         }
-        // var startTime = System.nanoTime(); TODO: used for internal performance tracking
-        var classData = new byte[4]; // TODO: make internal caching byte array?
         Manifest manifest = null;
         CodeSigner[] codeSigners = null;
-        try {
-            var conn = resource.openConnection();
-            try (var is = conn.getInputStream()) {
-                var buffer = new ByteArrayOutputStream();
-                int read;
-                while ((read = is.readNBytes(classData, 0, classData.length)) != 0) {
-                    buffer.write(classData, 0, read);
+        if (classData == null) {
+            classData = new byte[4];
+            try {
+                var conn = resource.openConnection();
+                try (var is = conn.getInputStream()) {
+                    var buffer = new ByteArrayOutputStream();
+                    int read;
+                    while ((read = is.readNBytes(classData, 0, classData.length)) != 0) {
+                        buffer.write(classData, 0, read);
+                    }
+                    classData = buffer.toByteArray();
+                    // TODO: provide a way of providing mock jar information for classes?
+                    if (conn instanceof JarURLConnection jarConnection) {
+                        manifest = jarConnection.getManifest();
+                        // Note: JarFile should NOT be null here
+                        codeSigners = jarConnection.getJarFile().getJarEntry(path).getCodeSigners();
+                    }
                 }
-                classData = buffer.toByteArray();
-                // TODO: provide a way of providing mock jar information for classes?
-                if (conn instanceof JarURLConnection jarConnection) {
-                    manifest = jarConnection.getManifest();
-                    // Note: JarFile should NOT be null here
-                    codeSigners = jarConnection.getJarFile().getJarEntry(path).getCodeSigners();
-                }
+            } catch (IOException e) {
+                // TODO: Demote to logging + return null array?
+                throw new ClassNotFoundException("Unable to establish connection to jar", e);
             }
-        } catch (IOException e) {
-            // TODO: Demote to logging + return null array?
-            throw new ClassNotFoundException("Unable to establish connection to jar", e);
         }
         var lastDivider = name.lastIndexOf('.');
         if (lastDivider != -1) {
@@ -117,7 +145,9 @@ public class BouncepadClassLoader extends LaunchClassLoader {
             }
         }
         // TODO: implement custom bytecode processing chain
-        classData = this.transformClassData(name, classData);
+        if (runTransformers) {
+            classData = this.transformClassData(name, classData);
+        }
 
         var codeSource = codeSigners == null ? null : new CodeSource(resource, codeSigners);
         clazz = this.defineClass(name, classData, 0, classData.length, codeSource);

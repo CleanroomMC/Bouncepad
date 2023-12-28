@@ -60,8 +60,8 @@ public class Bouncepad {
     }
 
     private static void runImagineBreaker() {
-        String imagineBreakerLibraryName = System.mapLibraryName("imaginebreaker");
-        URL imagineBreakerLibraryUrl = classLoader.getResource(imagineBreakerLibraryName);
+        var imagineBreakerLibraryName = System.mapLibraryName("imaginebreaker");
+        var imagineBreakerLibraryUrl = classLoader.getResource(imagineBreakerLibraryName);
         if (imagineBreakerLibraryUrl == null) {
             logger.fatal("Unable to launch, {} cannot be found.", imagineBreakerLibraryName);
             System.exit(1);
@@ -69,9 +69,9 @@ public class Bouncepad {
             try {
                 if ("jar".equals(imagineBreakerLibraryUrl.getProtocol())) {
                     // Extract the native to a temporary file if it resides in a jar (non-dev)
-                    Path tempDir = Files.createTempDirectory("bouncepad");
+                    var tempDir = Files.createTempDirectory("bouncepad");
                     tempDir.toFile().deleteOnExit();
-                    Path tempFile = tempDir.resolve(imagineBreakerLibraryName);
+                    var tempFile = tempDir.resolve(imagineBreakerLibraryName);
                     try (InputStream is = classLoader.getResourceAsStream(imagineBreakerLibraryName)) {
                         Files.copy(is, tempFile);
                     }
