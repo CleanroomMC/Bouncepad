@@ -2,12 +2,12 @@ package com.cleanroommc.bouncepad.api.tweaker;
 
 import com.cleanroommc.bouncepad.BouncepadClassLoader;
 
-import java.io.File;
+import java.nio.file.Path;
 import java.util.List;
 
 public interface Tweaker {
 
-    default void acceptOptions(List<String> arguments, File gameDirectory, File assetDirectory) {
+    default void acceptOptions(List<String> arguments, Path gameDirectory, Path assetDirectory) {
 
     }
 

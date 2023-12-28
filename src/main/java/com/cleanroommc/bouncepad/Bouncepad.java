@@ -3,6 +3,7 @@ package com.cleanroommc.bouncepad;
 import com.cleanroommc.bouncepad.api.tweaker.Launcher;
 import com.cleanroommc.bouncepad.api.tweaker.Tweaker;
 import joptsimple.OptionParser;
+import joptsimple.util.PathConverter;
 import net.minecraft.launchwrapper.ITweaker;
 import net.minecraft.launchwrapper.Launch;
 import org.apache.logging.log4j.LogManager;
@@ -19,13 +20,11 @@ import java.util.*;
 // TODO: service-fy tweakers, loaders and transformers
 public class Bouncepad {
 
-    public static BouncepadClassLoader classLoader;
-
-    public static File minecraftHome;
-    public static File assetsDir;
-
+    private static BouncepadClassLoader classLoader;
     private static Logger logger;
     private static InternalBlackboard blackboard;
+    private static Path minecraftHome;
+    private static Path assetsDirectory;
 
     public static void main(String[] args) {
         Thread.currentThread().setContextClassLoader(new AdamClassLoader());
@@ -44,8 +43,20 @@ public class Bouncepad {
         launch(args);
     }
 
-    public static Logger getLogger() {
+    public static BouncepadClassLoader classLoader() {
+        return classLoader;
+    }
+
+    public static Logger logger() {
         return logger;
+    }
+
+    public static Path minecraftHome() {
+        return minecraftHome;
+    }
+
+    public static Path assetsDirectory() {
+        return assetsDirectory;
     }
 
     private static void runImagineBreaker() {
@@ -83,9 +94,12 @@ public class Bouncepad {
         var parser = new OptionParser();
         parser.allowsUnrecognizedOptions();
 
-        // var profileOption = parser.accepts("version", "The version we launched with").withRequiredArg();
-        var gameDirOption = parser.accepts("gameDir", "Alternative game directory").withRequiredArg().ofType(File.class);
-        var assetsDirOption = parser.accepts("assetsDir", "Assets directory").withRequiredArg().ofType(File.class);
+        var gameDirOption = parser.accepts("gameDir", "Alternative game directory")
+                .withRequiredArg()
+                .withValuesConvertedBy(new PathConverter());
+        var assetsDirOption = parser.accepts("assetsDir", "Assets directory")
+                .withRequiredArg()
+                .withValuesConvertedBy(new PathConverter());
         var tweakClassOption = parser.accepts("tweakClass", "Tweak class(es) to load").withOptionalArg();
         var tweakerOption = parser.accepts("tweakers", "Tweakers to load").withOptionalArg();
         var launcherOption = parser.accepts("launcher", "Launcher to load").withOptionalArg();
@@ -95,9 +109,9 @@ public class Bouncepad {
 
         // var profileName = options.valueOf(profileOption);
         minecraftHome = options.valueOf(gameDirOption);
-        Launch.minecraftHome = minecraftHome;
-        assetsDir = options.valueOf(assetsDirOption);
-        Launch.assetsDir = assetsDir;
+        Launch.minecraftHome = minecraftHome.toFile();
+        assetsDirectory = options.valueOf(assetsDirOption);
+        Launch.assetsDir = assetsDirectory.toFile();
 
         var oldTweakClassNames = new ArrayList<>(options.valuesOf(tweakClassOption));
         blackboard.internalPut("TweakClasses", oldTweakClassNames);
@@ -151,7 +165,7 @@ public class Bouncepad {
                 for (var iter = tweakers.iterator(); iter.hasNext();) {
                     var tweaker = iter.next();
                     logger.info("Calling tweak class {}", tweaker.getClass().getName());
-                    tweaker.acceptOptions(extraArgs, minecraftHome, assetsDir);
+                    tweaker.acceptOptions(extraArgs, minecraftHome, assetsDirectory);
                     tweaker.acceptClassLoader(classLoader);
                     allNewTweakers.add(tweaker);
                     iter.remove();
@@ -180,7 +194,7 @@ public class Bouncepad {
                 for (var iter = tweakers.iterator(); iter.hasNext();) {
                     var tweaker = iter.next();
                     logger.info("Calling tweak class {}", tweaker.getClass().getName());
-                    tweaker.acceptOptions(extraArgs, minecraftHome, assetsDir);
+                    tweaker.acceptOptions(extraArgs, minecraftHome, assetsDirectory);
                     tweaker.acceptClassLoader(classLoader);
                     allOldTweakers.add(tweaker);
                     iter.remove();

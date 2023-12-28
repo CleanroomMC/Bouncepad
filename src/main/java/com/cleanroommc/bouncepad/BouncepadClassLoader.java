@@ -8,6 +8,8 @@ import net.minecraft.launchwrapper.LaunchClassLoader;
 import java.io.*;
 import java.net.JarURLConnection;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.CodeSigner;
 import java.security.CodeSource;
 import java.util.Map;
@@ -17,12 +19,11 @@ import java.util.jar.Manifest;
 
 public class BouncepadClassLoader extends LaunchClassLoader {
 
-    private static final File BEFORE_ALL_TRANSFORMATIONS_SAVE_FOLDER =  new File(Bouncepad.minecraftHome, "save_transformations" + File.separator + "before_all");
-    private static final File AFTER_ALL_TRANSFORMATIONS_SAVE_FOLDER =  new File(Bouncepad.minecraftHome, "save_transformations" + File.separator + "after_all");
+    private static final Path BEFORE_ALL_TRANSFORMATIONS_SAVE_DIRECTORY = Bouncepad.minecraftHome().resolve("save_transformations/before_all/");
+    private static final Path AFTER_ALL_TRANSFORMATIONS_SAVE_DIRECTORY = Bouncepad.minecraftHome().resolve("save_transformations/after_all/");
 
-    protected static File getAfterEachTransformationSaveFolder(Class<?> clazz) {
-        return new File(Bouncepad.minecraftHome,
-                "save_transformations" + File.separator + "after_each" + File.separator + clazz.getName().replace('.', File.separatorChar));
+    protected static Path getAfterEachTransformationSaveDirectory(Class<?> clazz) {
+        return Bouncepad.minecraftHome().resolve("save_transformations/after_each/").resolve(clazz.getName().replace('.', '/'));
     }
 
     static {
@@ -37,7 +38,6 @@ public class BouncepadClassLoader extends LaunchClassLoader {
 
     public BouncepadClassLoader(ClassLoader parentClassLoader) {
         super(parentClassLoader);
-        this.prepareDebugFolders();
     }
 
     void init() {
@@ -130,29 +130,29 @@ public class BouncepadClassLoader extends LaunchClassLoader {
         for (var exclusion : this.transformerExceptions) {
             if (name.startsWith(exclusion)) {
                 if (DebugOption.EXPLICIT_LOGGING.isOn()) {
-                    Bouncepad.getLogger().debug("Skip transforming [{}] due to it being excluded explicitly.", name);
+                    Bouncepad.logger().debug("Skip transforming [{}] due to it being excluded explicitly.", name);
                 }
                 return classData;
             }
         }
         if (DebugOption.SAVE_CLASS_BEFORE_ALL_TRANSFORMATIONS.isOn()) {
-            this.saveClassToDisk(classData, name, BEFORE_ALL_TRANSFORMATIONS_SAVE_FOLDER);
+            this.saveClassToDisk(classData, name, BEFORE_ALL_TRANSFORMATIONS_SAVE_DIRECTORY);
         }
         if (DebugOption.EXPLICIT_LOGGING.isOn()) {
-            var logger = Bouncepad.getLogger();
+            var logger = Bouncepad.logger();
             logger.debug("Begin transformation of class: [{}] with [{}]-length byte array", name, classData == null ? "null" : classData.length);
             for (IClassTransformer transformer : this.transformers) {
                 final var transformerName = transformer.getClass().getName();
                 classData = transformer.transform(name, name, classData);
                 logger.debug("[Transformer: {}]: After transformation of [{]], now results in a [{}]-length byte array", transformerName, name, classData == null ? "null" : classData.length);
                 if (DebugOption.SAVE_CLASS_AFTER_EACH_TRANSFORMATION.isOn()) {
-                    this.saveClassToDisk(classData, name, getAfterEachTransformationSaveFolder(transformer.getClass()));
+                    this.saveClassToDisk(classData, name, getAfterEachTransformationSaveDirectory(transformer.getClass()));
                 }
             }
         } else if (DebugOption.SAVE_CLASS_AFTER_EACH_TRANSFORMATION.isOn()) {
             for (IClassTransformer transformer : this.transformers) {
                 classData = transformer.transform(name, name, classData);
-                this.saveClassToDisk(classData, name, getAfterEachTransformationSaveFolder(transformer.getClass()));
+                this.saveClassToDisk(classData, name, getAfterEachTransformationSaveDirectory(transformer.getClass()));
             }
         } else {
             for (IClassTransformer transformer : this.transformers) {
@@ -160,7 +160,7 @@ public class BouncepadClassLoader extends LaunchClassLoader {
             }
         }
         if (DebugOption.SAVE_CLASS_AFTER_ALL_TRANSFORMATIONS.isOn()) {
-            this.saveClassToDisk(classData, name, AFTER_ALL_TRANSFORMATIONS_SAVE_FOLDER);
+            this.saveClassToDisk(classData, name, AFTER_ALL_TRANSFORMATIONS_SAVE_DIRECTORY);
         }
         return classData;
     }
@@ -182,23 +182,6 @@ public class BouncepadClassLoader extends LaunchClassLoader {
         return pkg;
     }
 
-    private void prepareDebugFolders() {
-        if (DebugOption.SAVE_CLASS_BEFORE_ALL_TRANSFORMATIONS.isOn() ||
-                DebugOption.SAVE_CLASS_AFTER_EACH_TRANSFORMATION.isOn() ||
-                DebugOption.SAVE_CLASS_AFTER_ALL_TRANSFORMATIONS.isOn()) {
-            File saveTransformationFolder = new File(Bouncepad.minecraftHome, "save_transformations");
-            saveTransformationFolder.mkdirs();
-            Bouncepad.getLogger().info("Transformation related debug options enabled, saving classes to [{}]",
-                    saveTransformationFolder.getAbsolutePath().replace('\\', '/'));
-            File beforeFolder = new File(saveTransformationFolder, "before_all");
-            beforeFolder.mkdirs();
-            File afterEachFolder = new File(saveTransformationFolder, "after_each");
-            afterEachFolder.mkdirs();
-            File afterAllFolder = new File(saveTransformationFolder, "after_all");
-            afterAllFolder.mkdirs();
-        }
-    }
-
     // Also copied from URLClassLoader
     private boolean isSealed(String name, Manifest manifest) {
         var attr = SharedSecrets.javaUtilJarAccess().getTrustedAttributes(manifest, name.replace('.', '/').concat("/"));
@@ -214,22 +197,14 @@ public class BouncepadClassLoader extends LaunchClassLoader {
         return "true".equalsIgnoreCase(sealed);
     }
 
-    private void saveClassToDisk(byte[] classData, String name, File folder) {
-        File outFile = new File(folder, name.replace('.', File.separatorChar) + ".class");
-        File outDir = outFile.getParentFile();
-        if (!outDir.exists()) {
-            outDir.mkdirs();
-        }
-        if (outFile.exists()) {
-            outFile.delete();
-        }
+    private void saveClassToDisk(byte[] classData, String name, Path path) {
         if (DebugOption.EXPLICIT_LOGGING.isOn()) {
-            Bouncepad.getLogger().debug("Saving transformed class [{}] to [{}]", name, outFile.getAbsolutePath().replace('\\', '/'));
+            Bouncepad.logger().debug("Saving transformed class [{}] to [{}]", name, path.toAbsolutePath().toString());
         }
-        try (var output = new FileOutputStream(outFile)) {
-            output.write(classData);
+        try (var os = Files.newOutputStream(path.resolve(name.replace('.', '/') + ".class"))) {
+            os.write(classData);
         } catch (IOException e) {
-            Bouncepad.getLogger().warn("Could not save transformed class [{}]", name, e);
+            Bouncepad.logger().warn("Could not save transformed class [{}]", name, e);
         }
     }
 

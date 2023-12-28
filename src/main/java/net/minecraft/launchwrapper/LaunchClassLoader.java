@@ -67,7 +67,7 @@ public abstract class LaunchClassLoader extends URLClassLoader {
                 this.renameTransformer = (IClassNameTransformer) transformer;
             }
         } catch (Exception e) {
-            Bouncepad.getLogger().error("Critical problem occurred when registering transfomer [{}]", transformerClassName, e);
+            Bouncepad.logger().error("Critical problem occurred when registering transfomer [{}]", transformerClassName, e);
         }
     }
 
@@ -87,14 +87,14 @@ public abstract class LaunchClassLoader extends URLClassLoader {
 
     @Deprecated
     public void addClassLoaderExclusion(String toExclude) {
-        Bouncepad.getLogger().warn("LaunchClassLoader#addClassLoaderExclusion is deprecated, calling addTransformerExclusion.");
+        Bouncepad.logger().warn("LaunchClassLoader#addClassLoaderExclusion is deprecated, calling addTransformerExclusion.");
         this.transformerExceptions.add(toExclude);
     }
 
     @Deprecated
     public void addTransformerExclusion(String toExclude) {
         this.transformerExceptions.add(toExclude);
-        Bouncepad.getLogger().warn("Added [{}] to transformer exclusions.", toExclude);
+        Bouncepad.logger().warn("Added [{}] to transformer exclusions.", toExclude);
     }
 
     public byte[] getClassBytes(String name) throws IOException {
@@ -104,7 +104,7 @@ public abstract class LaunchClassLoader extends URLClassLoader {
             resource = this.getResource(path);
             if (resource == null) {
                 if (DebugOption.EXPLICIT_LOGGING.isOn()) {
-                    Bouncepad.getLogger().debug("Cannot find resource of class: [{}]", name);
+                    Bouncepad.logger().debug("Cannot find resource of class: [{}]", name);
                 }
                 if (this.renameTransformer == null) {
                     return null;
@@ -128,14 +128,14 @@ public abstract class LaunchClassLoader extends URLClassLoader {
             classData = buffer.toByteArray();
         }
         if (DebugOption.EXPLICIT_LOGGING.isOn()) {
-            Bouncepad.getLogger().debug("Loading [{}]'s byte array from resource: [{}]", name, resource);
+            Bouncepad.logger().debug("Loading [{}]'s byte array from resource: [{}]", name, resource);
         }
         return classData;
     }
 
     @Deprecated(since = "0.6")
     public void clearNegativeEntries(Set<String> entriesToClear) {
-        Bouncepad.getLogger().warn("LaunchClassLoader#clearNegativeEntries is deprecated and has no effect as of Bouncepad 0.6.");
+        Bouncepad.logger().warn("LaunchClassLoader#clearNegativeEntries is deprecated and has no effect as of Bouncepad 0.6.");
     }
 
 }

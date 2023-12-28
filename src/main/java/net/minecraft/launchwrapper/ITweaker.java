@@ -6,6 +6,7 @@ import com.cleanroommc.bouncepad.api.tweaker.Tweaker;
 
 import java.io.File;
 import java.lang.reflect.Method;
+import java.nio.file.Path;
 import java.util.List;
 
 @Deprecated(since = "0.5")
@@ -27,8 +28,8 @@ public interface ITweaker extends Launcher, Tweaker {
     }
 
     @Override
-    default void acceptOptions(List<String> arguments, File gameDirectory, File assetDirectory) {
-        acceptOptions(arguments, gameDirectory, assetDirectory, "1.12.2");
+    default void acceptOptions(List<String> arguments, Path gameDirectory, Path assetDirectory) {
+        acceptOptions(arguments, gameDirectory.toFile(), assetDirectory.toFile(), "1.12.2");
     }
 
     @Override
