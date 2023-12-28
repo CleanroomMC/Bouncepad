@@ -6,17 +6,13 @@ import java.util.*;
 
 import com.cleanroommc.bouncepad.Bouncepad;
 import com.cleanroommc.bouncepad.DebugOption;
-import org.apache.logging.log4j.Level;
 
 @Deprecated(since = "0.5")
 public abstract class LaunchClassLoader extends URLClassLoader {
 
     protected final List<URL> sources;
     protected final List<IClassTransformer> transformers = new ArrayList<>(2);
-
-    @Deprecated(forRemoval = true)
-    protected Set<String> classLoaderExceptions = new HashSet<>();
-    protected Set<String> transformerExceptions = new HashSet<>();
+    protected final Set<String> transformerExceptions = new HashSet<>();
 
     protected IClassNameTransformer renameTransformer;
 
@@ -66,12 +62,12 @@ public abstract class LaunchClassLoader extends URLClassLoader {
     public void registerTransformer(String transformerClassName) {
         try {
             IClassTransformer transformer = (IClassTransformer) loadClass(transformerClassName).newInstance();
-            transformers.add(transformer);
+            this.transformers.add(transformer);
             if (transformer instanceof IClassNameTransformer && renameTransformer == null) {
-                renameTransformer = (IClassNameTransformer) transformer;
+                this.renameTransformer = (IClassNameTransformer) transformer;
             }
         } catch (Exception e) {
-            LogWrapper.log(Level.ERROR, e, "A critical problem occurred registering the ASM transformer class %s", transformerClassName);
+            Bouncepad.getLogger().error("Critical problem occurred when registering transfomer [{}]", transformerClassName, e);
         }
     }
 
@@ -89,12 +85,16 @@ public abstract class LaunchClassLoader extends URLClassLoader {
         return Collections.unmodifiableList(transformers);
     }
 
+    @Deprecated
     public void addClassLoaderExclusion(String toExclude) {
-        classLoaderExceptions.add(toExclude);
+        Bouncepad.getLogger().warn("LaunchClassLoader#addClassLoaderExclusion is deprecated, calling addTransformerExclusion.");
+        this.transformerExceptions.add(toExclude);
     }
 
+    @Deprecated
     public void addTransformerExclusion(String toExclude) {
-        transformerExceptions.add(toExclude);
+        this.transformerExceptions.add(toExclude);
+        Bouncepad.getLogger().warn("Added [{}] to transformer exclusions.", toExclude);
     }
 
     public byte[] getClassBytes(String name) throws IOException {
