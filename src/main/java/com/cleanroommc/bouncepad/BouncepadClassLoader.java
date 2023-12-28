@@ -1,5 +1,6 @@
 package com.cleanroommc.bouncepad;
 
+import com.cleanroommc.bouncepad.impl.asm.BumpASMAPITransformer;
 import jdk.internal.access.SharedSecrets;
 import net.minecraft.launchwrapper.IClassTransformer;
 import net.minecraft.launchwrapper.LaunchClassLoader;
@@ -14,7 +15,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.jar.Attributes.Name;
 import java.util.jar.Manifest;
 
-// TODO: implement logging w/ DebugOptions
 public class BouncepadClassLoader extends LaunchClassLoader {
 
     private static final File BEFORE_ALL_TRANSFORMATIONS_SAVE_FOLDER =  new File(Bouncepad.minecraftHome, "save_transformations" + File.separator + "before_all");
@@ -38,6 +38,11 @@ public class BouncepadClassLoader extends LaunchClassLoader {
     public BouncepadClassLoader(ClassLoader parentClassLoader) {
         super(parentClassLoader);
         this.prepareDebugFolders();
+    }
+
+    void init() {
+        // TODO: Mixin Staging
+        this.registerTransformer(BumpASMAPITransformer.class.getName());
     }
 
     public boolean isClassLoaded(String name) {

@@ -34,6 +34,7 @@ public class Bouncepad {
 
         classLoader = new BouncepadClassLoader();
         Thread.currentThread().setContextClassLoader(classLoader);
+        classLoader.init();
 
         Launch.classLoader = classLoader;
         logger = LogManager.getLogger("Bouncepad");
