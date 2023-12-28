@@ -122,6 +122,14 @@ public class BouncepadClassLoader extends LaunchClassLoader {
     }
 
     protected byte[] transformClassData(String name, byte[] classData) {
+        for (var exclusion : this.transformerExceptions) {
+            if (name.startsWith(exclusion)) {
+                if (DebugOption.EXPLICIT_LOGGING.isOn()) {
+                    Bouncepad.getLogger().debug("Skip transforming [{}] due to it being excluded explicitly.", name);
+                }
+                return classData;
+            }
+        }
         if (DebugOption.SAVE_CLASS_BEFORE_ALL_TRANSFORMATIONS.isOn()) {
             this.saveClassToDisk(classData, name, BEFORE_ALL_TRANSFORMATIONS_SAVE_FOLDER);
         }

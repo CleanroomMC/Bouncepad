@@ -16,7 +16,6 @@ public abstract class LaunchClassLoader extends URLClassLoader {
 
     @Deprecated(forRemoval = true)
     protected Set<String> classLoaderExceptions = new HashSet<>();
-    @Deprecated(forRemoval = true)
     protected Set<String> transformerExceptions = new HashSet<>();
 
     protected IClassNameTransformer renameTransformer;
