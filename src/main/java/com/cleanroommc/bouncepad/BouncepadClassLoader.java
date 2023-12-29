@@ -53,6 +53,10 @@ public class BouncepadClassLoader extends LaunchClassLoader {
         return this.loadedClasses.containsKey(name.replace('/', '.'));
     }
 
+    public boolean canClassBeTransformed(String name) {
+        return this.transformerExceptions.stream().anyMatch(name::startsWith);
+    }
+
     void init() {
         // TODO: Mixin Staging
         this.registerTransformer(BumpASMAPITransformer.class.getName());
