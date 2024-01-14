@@ -27,10 +27,7 @@ jobs:
         uses: gradle/gradle-build-action@v2
         with:
           arguments: |
-            publish
-            -PCleanroomMaven=${{ vars.CLEANROOM_MAVEN }}
-            -PCleanroomMavenUsername=${{ secrets.MAVEN_NAME }}
-            -PCleanroomMavenPassword=${{ secrets.MAVEN_PASSWORD }}
+            build
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v3
