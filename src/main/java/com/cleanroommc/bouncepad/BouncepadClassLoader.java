@@ -1,6 +1,8 @@
 package com.cleanroommc.bouncepad;
 
 import com.cleanroommc.bouncepad.api.asm.generator.ClassGenerator;
+import com.cleanroommc.bouncepad.debug.DebugDirectories;
+import com.cleanroommc.bouncepad.debug.DebugOption;
 import com.cleanroommc.bouncepad.impl.asm.BumpASMAPITransformer;
 import jdk.internal.access.SharedSecrets;
 import net.minecraft.launchwrapper.IClassTransformer;
@@ -23,11 +25,8 @@ import java.util.jar.Manifest;
 
 public class BouncepadClassLoader extends LaunchClassLoader {
 
-    private static final Path BEFORE_ALL_TRANSFORMATIONS_SAVE_DIRECTORY = Bouncepad.minecraftHome().resolve("save_transformations/before_all/");
-    private static final Path AFTER_ALL_TRANSFORMATIONS_SAVE_DIRECTORY = Bouncepad.minecraftHome().resolve("save_transformations/after_all/");
-
     protected static Path getAfterEachTransformationSaveDirectory(Class<?> clazz) {
-        return Bouncepad.minecraftHome().resolve("save_transformations/after_each/").resolve(clazz.getName().replace('.', '/'));
+        return DebugDirectories.AFTER_EACH_TRANSFORMATION.path(clazz.getName().split("\\."));
     }
 
     static {
@@ -36,10 +35,6 @@ public class BouncepadClassLoader extends LaunchClassLoader {
 
     private final Map<String, Class<?>> loadedClasses = new ConcurrentHashMap<>(4096);
     private final List<ClassGenerator> classGenerators = new ArrayList<>();
-
-    BouncepadClassLoader() {
-        this(BouncepadClassLoader.class.getClassLoader());
-    }
 
     public BouncepadClassLoader(ClassLoader parentClassLoader) {
         super(parentClassLoader);
@@ -170,7 +165,7 @@ public class BouncepadClassLoader extends LaunchClassLoader {
             }
         }
         if (DebugOption.SAVE_CLASS_BEFORE_ALL_TRANSFORMATIONS.isOn()) {
-            this.saveClassToDisk(classData, name, BEFORE_ALL_TRANSFORMATIONS_SAVE_DIRECTORY);
+            this.saveClassToDisk(classData, name, DebugDirectories.BEFORE_ALL_TRANSFORMATIONS.path());
         }
         if (DebugOption.EXPLICIT_LOGGING.isOn()) {
             var logger = Bouncepad.logger();
@@ -194,7 +189,7 @@ public class BouncepadClassLoader extends LaunchClassLoader {
             }
         }
         if (DebugOption.SAVE_CLASS_AFTER_ALL_TRANSFORMATIONS.isOn()) {
-            this.saveClassToDisk(classData, name, AFTER_ALL_TRANSFORMATIONS_SAVE_DIRECTORY);
+            this.saveClassToDisk(classData, name, DebugDirectories.AFTER_ALL_TRANSFORMATIONS.path());
         }
         return classData;
     }

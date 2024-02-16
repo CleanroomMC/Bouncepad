@@ -5,7 +5,7 @@ import java.net.*;
 import java.util.*;
 
 import com.cleanroommc.bouncepad.Bouncepad;
-import com.cleanroommc.bouncepad.DebugOption;
+import com.cleanroommc.bouncepad.debug.DebugOption;
 
 @Deprecated(since = "0.5")
 public abstract class LaunchClassLoader extends URLClassLoader {

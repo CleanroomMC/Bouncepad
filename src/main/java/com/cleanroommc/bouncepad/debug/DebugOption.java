@@ -1,4 +1,4 @@
-package com.cleanroommc.bouncepad;
+package com.cleanroommc.bouncepad.debug;
 
 
 public enum DebugOption {

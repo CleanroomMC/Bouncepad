@@ -8,11 +8,8 @@ import net.minecraft.launchwrapper.ITweaker;
 import net.minecraft.launchwrapper.Launch;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import zone.rong.imaginebreaker.NativeImagineBreaker;
+import zone.rong.imaginebreaker.ImagineBreaker;
 
-import java.io.File;
-import java.io.InputStream;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 
@@ -26,20 +23,30 @@ public class Bouncepad {
     private static Path assetsDirectory;
 
     public static void main(String[] args) {
-        Thread.currentThread().setContextClassLoader(new AdamClassLoader());
-        var backing = new HashMap<String, Object>();
-        Launch.blackboard = backing;
 
-        classLoader = new BouncepadClassLoader();
-        Thread.currentThread().setContextClassLoader(classLoader);
-        classLoader.init();
+        if (ClassLoader.getSystemClassLoader().getClass() != BouncepadClassLoader.class) {
+            throw new RuntimeException("java.system.class.loader property should be pointed towards com.cleanroommc.bouncepad.BouncepadClassLoader.");
+        }
+
+        classLoader = (BouncepadClassLoader) ClassLoader.getSystemClassLoader();
+
+        ImagineBreaker.openBootModules();
+        ImagineBreaker.wipeFieldFilters();
+        ImagineBreaker.wipeMethodFilters();
+
+        // Init common static fields between Bouncepad.class & Launch.class
 
         Launch.classLoader = classLoader;
-        logger = LogManager.getLogger("Bouncepad");
-        blackboard = new InternalBlackboard(backing);
+        Launch.blackboard = new HashMap<>();
 
-        runImagineBreaker(); // TODO: not to run unless its Java 9 or above
-        launch(args);
+        logger = LogManager.getLogger("Bouncepad");
+        blackboard = new InternalBlackboard(Launch.blackboard);
+
+        if (args.length != 0) {
+            launch(args);
+        } else {
+            System.exit(0);
+        }
     }
 
     public static BouncepadClassLoader classLoader() {
@@ -56,37 +63,6 @@ public class Bouncepad {
 
     public static Path assetsDirectory() {
         return assetsDirectory;
-    }
-
-    private static void runImagineBreaker() {
-        var imagineBreakerLibraryName = System.mapLibraryName("imaginebreaker");
-        var imagineBreakerLibraryUrl = classLoader.getResource(imagineBreakerLibraryName);
-        if (imagineBreakerLibraryUrl == null) {
-            logger.fatal("Unable to launch, {} cannot be found.", imagineBreakerLibraryName);
-            System.exit(1);
-        } else {
-            try {
-                if ("jar".equals(imagineBreakerLibraryUrl.getProtocol())) {
-                    // Extract the native to a temporary file if it resides in a jar (non-dev)
-                    var tempDir = Files.createTempDirectory("bouncepad");
-                    tempDir.toFile().deleteOnExit();
-                    var tempFile = tempDir.resolve(imagineBreakerLibraryName);
-                    try (InputStream is = classLoader.getResourceAsStream(imagineBreakerLibraryName)) {
-                        Files.copy(is, tempFile);
-                    }
-                    tempFile.toFile().deleteOnExit();
-                    System.load(tempFile.toAbsolutePath().toString());
-                } else {
-                    // Load as-is if it is outside a jar (dev)
-                    System.load(new File(imagineBreakerLibraryUrl.toURI()).getAbsolutePath());
-                }
-                NativeImagineBreaker.openBaseModules();
-                NativeImagineBreaker.removeAllReflectionFilters();
-            } catch (Throwable t) {
-                logger.fatal("Unable to launch, error loading natives", t);
-                System.exit(1);
-            }
-        }
     }
 
     private static void launch(String[] args) {
@@ -111,6 +87,8 @@ public class Bouncepad {
         Launch.minecraftHome = minecraftHome.toFile();
         assetsDirectory = options.valueOf(assetsDirOption);
         Launch.assetsDir = assetsDirectory.toFile();
+
+        classLoader.init(); // TODO: remove
 
         var oldTweakClassNames = new ArrayList<>(options.valuesOf(tweakClassOption));
         blackboard.internalPut("TweakClasses", oldTweakClassNames);
