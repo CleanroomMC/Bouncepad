@@ -3,38 +3,24 @@ package com.cleanroommc.bouncepad.debug;
 
 public enum DebugOption {
 
-    EXPLICIT_LOGGING("bouncepad.debug.explicit_logging"),
-    SAVE_CLASS_BEFORE_ALL_TRANSFORMATIONS("bouncepad.debug.save_class_before_all_transformations"),
-    SAVE_CLASS_AFTER_EACH_TRANSFORMATION("bouncepad.debug.save_class_after_each_transformation"),
-    SAVE_CLASS_AFTER_ALL_TRANSFORMATIONS("bouncepad.debug.save_class_after_all_transformations");
-
-    /**
-     * Call this to refresh debug properties, should be used after programmatically setting these values on or off
-     */
-    public static void refreshValues() {
-        for (DebugOption debugOption : DebugOption.values()) {
-            debugOption.refreshValue();
-        }
-    }
+    DO_NOT_PROCESS_ARGUMENTS("bouncepad.doNotProcessArguments"),
+    EXPLICIT_LOGGING("bouncepad.explicitLogging"),
+    SAVE_CLASS_BEFORE_ALL_TRANSFORMATIONS("bouncepad.saveClassBeforeAllTransformations"),
+    SAVE_CLASS_AFTER_EACH_TRANSFORMATION("bouncepad.saveClassAfterEachTransformation"),
+    SAVE_CLASS_AFTER_ALL_TRANSFORMATIONS("bouncepad.saveClassAfterAllTransformations");
 
     private final String propertyString;
 
-    private boolean value;
-
     DebugOption(String propertyString) {
         this.propertyString = propertyString;
-        this.refreshValue();
     }
 
     public boolean isOn() {
-        return value;
+        return Boolean.parseBoolean(System.getProperty(this.propertyString));
     }
 
-    /**
-     * Call this to refresh debug property, should be used after programmatically setting the value on or off
-     */
-    public void refreshValue() {
-        this.value = Boolean.parseBoolean(System.getProperty(this.propertyString));
+    public boolean isOff() {
+        return !isOn();
     }
 
     @Override
