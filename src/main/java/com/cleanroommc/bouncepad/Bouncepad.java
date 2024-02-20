@@ -1,5 +1,6 @@
 package com.cleanroommc.bouncepad;
 
+import com.cleanroommc.bouncepad.api.Blackboard;
 import com.cleanroommc.bouncepad.debug.DebugOption;
 import joptsimple.OptionParser;
 import joptsimple.util.PathConverter;
@@ -16,7 +17,7 @@ public final class Bouncepad {
 
     private static BouncepadClassLoader classLoader;
     private static Logger logger;
-    // private static Blackboard blackboard;
+    private static Blackboard globalBlackboard;
     private static Path minecraftHome, assetsDirectory;
 
     public static void main(String[] args) {
@@ -59,9 +60,9 @@ public final class Bouncepad {
         return logger;
     }
 
-    // public static Blackboard blackboard() {
-        // return blackboard;
-    // }
+    public static Blackboard globalBlackboard() {
+        return globalBlackboard;
+    }
 
     public static Path minecraftHome() {
         return minecraftHome;
@@ -77,7 +78,7 @@ public final class Bouncepad {
 
     private static void initBlackboard() {
         var map = new HashMap<String, Object>();
-        // Bouncepad.blackboard = new BlackboardImpl(map);
+        Bouncepad.globalBlackboard = new Blackboard(map);
         Launch.blackboard = map;
     }
 
